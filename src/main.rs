@@ -1,6 +1,28 @@
-mod ast;
+use rand::prelude::*;
 
+pub mod ast;
+
+
+fn roll(dice: &[(i32, i32)]) {
+    let mut rng = StdRng::seed_from_u64(ast::TEST_SEED);
+    for &(num, sides) in dice.iter() {
+        let tot: i32 = (&mut rng)
+            .sample_iter(rand::distributions::Uniform::new_inclusive(1, sides))
+            .take(num as usize)
+            .sum();
+        println!("{}d{}: {}", num, sides, tot);
+    }
+}
 
 fn main() {
-    assert_eq!(ast::Expression::new(ast::Node::Number(1)).eval().unwrap(), 1);
+    let to_roll: [&[(i32, i32)]; 4] = [
+        &[(1, 20)],
+        &[(6, 6)],
+        &[(4, 12)],
+        &[(2, 10), (3, 4)],
+    ];
+
+    for &dice in to_roll.iter() {
+        roll(dice);
+    }
 }

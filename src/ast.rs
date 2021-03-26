@@ -1,5 +1,16 @@
+use rand::{
+    distributions::Uniform,
+    prelude::{
+        Distribution,
+        StdRng,
+    },
+    SeedableRng,
+};
+
 pub type Child = Option<Box<Node>>;
 pub type Result<T> = std::result::Result<T, ExprError>;
+
+pub const TEST_SEED: u64 = 10353;
 
 
 #[derive(Debug)]
@@ -81,19 +92,20 @@ impl Expression {
     }
 
     pub fn eval(&self) -> Result<i32> {
-        Self::eval_recursive(&self.head.as_ref().expect("Head not initialized"))
+        let mut rng: StdRng = if let Some(seed) = self.seed { StdRng::seed_from_u64(seed) } else { StdRng::from_entropy() };
+        Self::eval_recursive(&self.head.as_ref().expect("Head not initialized"), &mut rng)
     }
 
-    fn eval_recursive(head: &Node) -> Result<i32> {
+    fn eval_recursive(head: &Node, mut rng: &mut StdRng) -> Result<i32> {
         let mut l: Option<i32> = None;
         let mut r: Option<i32> = None;
 
         if let Some(left) = &head.left {
-            l = Some(Self::eval_recursive(left).unwrap());
+            l = Some(Self::eval_recursive(left, &mut rng).unwrap());
         }
 
         if let Some(right) = &head.right {
-            r = Some(Self::eval_recursive(right).unwrap());
+            r = Some(Self::eval_recursive(right, &mut rng).unwrap());
         }
 
         let l = if let Some(x) = l { x } else { 0 };
@@ -119,7 +131,24 @@ impl Expression {
             Op::Number(x) => {
                 Ok(x)
             }
-            Op::Dice { .. } => todo!()
+            Op::Dice { num, sides } => {
+                compute_dice(num, sides, rng)
+            }
         }
     }
+}
+
+fn compute_dice(num: i32, sides: i32, rng: &mut StdRng) -> Result<i32> {
+    if num == 0 {
+        return Ok(0)
+    }
+    if sides == 0 {
+        return Err(ExprError::ZeroSides)
+    }
+
+    let distr = Uniform::new_inclusive(1, sides);
+    Ok(distr.sample_iter(rng)
+        .take(num as usize)
+        .sum()
+    )
 }
