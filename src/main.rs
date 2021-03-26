@@ -2,5 +2,5 @@ mod ast;
 
 
 fn main() {
-    println!("Hello, world!");
+    assert_eq!(ast::Expression::new(ast::Node::Number(1)).eval().unwrap(), 1);
 }

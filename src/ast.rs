@@ -1,4 +1,5 @@
 pub type Child = Option<Box<Node>>;
+pub type Result<T> = std::result::Result<T, ExprError>;
 
 
 #[derive(Debug)]
@@ -77,5 +78,48 @@ impl Expression {
 
     pub fn from_seed(head: Node, seed: u64) -> Self {
         Expression { head: Some(head), seed: Some(seed) }
+    }
+
+    pub fn eval(&self) -> Result<i32> {
+        Self::eval_recursive(&self.head.as_ref().expect("Head not initialized"))
+    }
+
+    fn eval_recursive(head: &Node) -> Result<i32> {
+        let mut l: Option<i32> = None;
+        let mut r: Option<i32> = None;
+
+        if let Some(left) = &head.left {
+            l = Some(Self::eval_recursive(left).unwrap());
+        }
+
+        if let Some(right) = &head.right {
+            r = Some(Self::eval_recursive(right).unwrap());
+        }
+
+        let l = if let Some(x) = l { x } else { 0 };
+        let r = if let Some(x) = r { x } else { 0 };
+
+        match head.op {
+            Op::Add => {
+                Ok(l + r)
+            }
+            Op::Sub => {
+                Ok(l - r)
+            }
+            Op::Mul => {
+                Ok(l * r)
+            }
+            Op::Div => {
+                if r == 0 {
+                    Err(ExprError::ZeroDivision)
+                } else {
+                    Ok(l / r)
+                }
+            }
+            Op::Number(x) => {
+                Ok(x)
+            }
+            Op::Dice { .. } => todo!()
+        }
     }
 }
