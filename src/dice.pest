@@ -1,6 +1,6 @@
 WHITESPACE = _{ " " }
 
-atom = { dice | number }
+atom = _{ dice | number }
   number = { ("+" | "-")? ~ ("0" | ASCII_NONZERO_DIGIT ~ ASCII_DIGIT*) }
   dice = { number? ~ ^"d" ~ number }
 
@@ -11,6 +11,6 @@ binary_operator = _{ add | sub | mul | div }
   div = { "/" }
 
 expr = { term ~ (binary_operator ~ term)* }
-  term = _{ atom | "(" ~ expr ~ ")" }
+  term = { atom | "(" ~ expr ~ ")" }
 
 calculation = { SOI ~ expr ~ EOI }

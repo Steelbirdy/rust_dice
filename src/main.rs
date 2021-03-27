@@ -1,10 +1,12 @@
 use rand::prelude::*;
 
 pub mod ast;
+pub mod expr;
+pub mod parse;
 
 
 fn roll(dice: &[(i32, i32)]) {
-    let mut rng = StdRng::seed_from_u64(ast::TEST_SEED);
+    let mut rng = StdRng::seed_from_u64(expr::TEST_SEED);
     for &(num, sides) in dice.iter() {
         let tot: i32 = (&mut rng)
             .sample_iter(rand::distributions::Uniform::new_inclusive(1, sides))
@@ -15,11 +17,14 @@ fn roll(dice: &[(i32, i32)]) {
 }
 
 fn main() {
-    let to_roll: [&[(i32, i32)]; 4] = [
+    let to_roll: Vec<&[(i32, i32)]> = vec![
         &[(1, 20)],
         &[(6, 6)],
         &[(4, 12)],
         &[(2, 10), (3, 4)],
+        &[(1, 10)],
+        &[(1, 6)],
+        &[(1, 12)],
     ];
 
     for &dice in to_roll.iter() {
