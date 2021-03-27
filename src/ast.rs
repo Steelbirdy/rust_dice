@@ -8,12 +8,12 @@ use rand::{
 };
 
 pub type Child = Option<Box<Node>>;
-pub type Result<T> = std::result::Result<T, ExprError>;
+pub type EvalResult<T> = Result<T, ExprError>;
 
 pub const TEST_SEED: u64 = 10353;
 
 
-#[derive(Debug)]
+#[derive(Debug, Eq, PartialEq)]
 pub enum ExprError {
     ZeroDivision,
     ZeroSides,
@@ -91,12 +91,12 @@ impl Expression {
         Expression { head: Some(head), seed: Some(seed) }
     }
 
-    pub fn eval(&self) -> Result<i32> {
+    pub fn eval(&self) -> EvalResult<i32> {
         let mut rng: StdRng = if let Some(seed) = self.seed { StdRng::seed_from_u64(seed) } else { StdRng::from_entropy() };
         Self::eval_recursive(&self.head.as_ref().expect("Head not initialized"), &mut rng)
     }
 
-    fn eval_recursive(head: &Node, mut rng: &mut StdRng) -> Result<i32> {
+    fn eval_recursive(head: &Node, mut rng: &mut StdRng) -> EvalResult<i32> {
         let mut l: Option<i32> = None;
         let mut r: Option<i32> = None;
 
@@ -138,12 +138,12 @@ impl Expression {
     }
 }
 
-fn compute_dice(num: i32, sides: i32, rng: &mut StdRng) -> Result<i32> {
+fn compute_dice(num: i32, sides: i32, rng: &mut StdRng) -> EvalResult<i32> {
     if num == 0 {
-        return Ok(0)
+        return Ok(0);
     }
     if sides == 0 {
-        return Err(ExprError::ZeroSides)
+        return Err(ExprError::ZeroSides);
     }
 
     let distr = Uniform::new_inclusive(1, sides);
