@@ -1,25 +1,18 @@
 mod ast;
+mod expr;
 mod parse;
 
 
 #[cfg(test)]
 mod test_ast {
     use super::ast::{
-        TEST_SEED,
         Child,
-        EvalResult,
-        ExprError,
-        Expression,
         Node,
         Op,
     };
 
     fn boxed_child(op: Op, left: Child, right: Child) -> Child {
         Some(Box::new(Node { op, left, right }))
-    }
-
-    fn eval(head: Node) -> EvalResult<i32> {
-        Expression::from_seed(head, TEST_SEED).eval()
     }
 
     #[test]
@@ -49,6 +42,22 @@ mod test_ast {
                         right: boxed_child(Op::Dice { num: 1, sides: 20 }, None, None),
                     }
         )
+    }
+}
+
+
+#[cfg(test)]
+mod test_expr {
+    use super::ast::Node;
+    use super::expr::{
+        TEST_SEED,
+        EvalResult,
+        ExprError,
+        Expression,
+    };
+
+    fn eval(head: Node) -> EvalResult<i32> {
+        Expression::from_seed(head, TEST_SEED).eval()
     }
 
     #[test]
@@ -138,7 +147,6 @@ mod test_ast {
         )
     }
 }
-
 
 #[cfg(test)]
 mod test_parse {
