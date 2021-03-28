@@ -311,6 +311,22 @@ mod test_eval {
             39);
     }
 
+    #[test]
+    fn test_empty_set_value() {
+        assert_eq!(EvalNode::Set(vec![]).value().unwrap(), 0);
+    }
+
+    #[test]
+    fn test_set_value() {
+        assert_eq!(EvalNode::Set(vec![
+            EvalNode::Number(-3),
+            EvalNode::Dice { num: 1, sides: 20, rolls: vec![16] },
+            EvalNode::Add(EvalNode::Number(1), EvalNode::Dice { num: 1, sides: 12, rolls: vec![6]})
+        ]).value().unwrap(), 20);
+    }
+
+
+
 
     #[test]
     fn test_zero_division_err() {
