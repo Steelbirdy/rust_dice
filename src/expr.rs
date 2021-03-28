@@ -11,7 +11,6 @@ use crate::ast::{
     Op
 };
 pub use crate::eval::EvalNode;
-use std::borrow::Borrow;
 
 
 pub const TEST_SEED: u64 = 10353;
@@ -45,6 +44,10 @@ impl Expression {
 
     fn eval_recursive(head: &Node, mut rng: &mut StdRng) -> ExprResult<EvalNode> {
         match &head.op {
+            Op::Parens => {
+                let inner = Self::eval_recursive(head.left.as_ref().unwrap(), &mut rng);
+                Ok(EvalNode::Parens { inner: Box::new(inner.unwrap()) })
+            }
             Op::Number(x) => {
                 Ok(EvalNode::Number(*x))
             }

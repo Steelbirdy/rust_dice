@@ -12,6 +12,7 @@ pub enum EvalError {
 #[derive(Debug)]
 pub enum EvalNode {
     BinaryOp { op: Op, left: Box<EvalNode>, right: Box<EvalNode> },
+    Parens { inner: Box<EvalNode> },
     Number(i32),
     Dice { num: i32, sides: i32, rolls: Vec<i32> },
 }
@@ -63,6 +64,9 @@ impl EvalNode {
                     _ => unreachable!()
                 }
             }
+            EvalNode::Parens { inner } => {
+                Ok(inner.value().unwrap())
+            }
             EvalNode::Number(x) => {
                 Ok(*x)
             }
@@ -84,6 +88,9 @@ impl EvalNode {
                 };
 
                 format!("{} {} {}", left.to_string(), o, right.to_string())
+            }
+            EvalNode::Parens { inner } => {
+                format!("({})", inner.to_string())
             }
             EvalNode::Number(x) => {
                 format!("{}", x)

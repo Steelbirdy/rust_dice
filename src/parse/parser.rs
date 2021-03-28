@@ -70,7 +70,13 @@ impl DiceParser {
         Ok(match_nodes!(input.into_children();
             [number(x)] => ASTNode::Number(x),
             [dice(x)] => x,
-            [expr(x)] => x,
+            [parens(x)] => x,
+        ))
+    }
+
+    fn parens(input: Node) -> ParseResult<ASTNode> {
+        Ok(match_nodes!(input.into_children();
+            [expr(x)] => ASTNode::Parens(x),
         ))
     }
 

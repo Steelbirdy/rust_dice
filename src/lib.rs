@@ -175,14 +175,14 @@ mod test_parse {
     fn test_parse_parens_single_num() {
         assert_eq!( // (2)
                     parse("(2)").unwrap(),
-                    Node::Number(2));
+                    Node::Parens(Node::Number(2)));
     }
 
     #[test]
     fn test_parse_parens_single_dice() {
         assert_eq!( // (1d10)
                     parse("(1d10)").unwrap(),
-                    Node::Dice(1, 10));
+                    Node::Parens(Node::Dice(1, 10)));
     }
 
     #[test]
