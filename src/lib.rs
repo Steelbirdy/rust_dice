@@ -8,12 +8,13 @@ mod parse;
 mod test_ast {
     use super::ast::{
         Child,
+        InnerNode,
         Node,
         Op,
     };
 
     fn boxed_child(op: Op, left: Child, right: Child) -> Child {
-        Some(Box::new(Node { op, left, right }))
+        Some(Box::new(Node::Node(InnerNode { op, left, right })))
     }
 
     #[test]
@@ -28,7 +29,7 @@ mod test_ast {
                                 Node::Dice(1, 4)),
                             Node::Number(1)),
                         Node::Dice(1, 20)),
-                    Node {
+                    Node::Node(InnerNode {
                         op: Op::Add,
                         left: boxed_child(
                             Op::Sub,
@@ -41,7 +42,7 @@ mod test_ast {
                                 boxed_child(Op::Dice { num: 1, sides: 4 }, None, None)),
                             boxed_child(Op::Number(1), None, None)),
                         right: boxed_child(Op::Dice { num: 1, sides: 20 }, None, None),
-                    }
+                    })
         )
     }
 }
@@ -142,6 +143,7 @@ mod test_expr {
     }
 }
 
+
 #[cfg(test)]
 mod test_parse {
     use super::ast::{
@@ -155,6 +157,10 @@ mod test_parse {
 
     fn parse(input_str: &str) -> ParseResult<Node> {
         super::parse::parse(input_str)
+    }
+
+    fn boxed(input_vec: Vec<Node>) -> Vec<Box<Node>> {
+        input_vec.into_iter().map(|n| Box::new(n)).collect()
     }
 
     #[test]
@@ -245,14 +251,40 @@ mod test_parse {
                             Node::Dice(3, 12)),
                         Node::Number(5)));
     }
+
+    #[test]
+    fn test_parse_empty_set() {
+        assert_eq!(
+            parse("()").unwrap(),
+            Node::Set(vec![]));
+    }
+
+    #[test]
+    fn test_parse_set_one_element() {
+        assert_eq!(parse("(1,)").unwrap(),
+                   Node::Set(boxed(vec![
+                       Node::Number(1)
+                   ])))
+    }
+
+    #[test]
+    fn test_parse_set() {
+        assert_eq!(parse("(1, 2d6, 5d4, -3 + 1d8)").unwrap(),
+        Node::Set(boxed(vec![
+            Node::Number(1),
+            Node::Dice(2, 6),
+            Node::Dice(5, 4),
+            Node::Add(Node::Number(-3), Node::Dice(1, 8)),
+        ])))
+    }
 }
+
 
 #[cfg(test)]
 mod test_eval {
     use super::eval::{
         EvalError,
         EvalNode,
-        Op,
     };
 
     #[test]
@@ -272,6 +304,28 @@ mod test_eval {
     }
 
     #[test]
+    fn test_display_empty_set() {
+        assert_eq!(EvalNode::Set(vec![]).to_string(), "()");
+    }
+
+    #[test]
+    fn test_display_one_length_set() {
+        assert_eq!(EvalNode::Set(vec![EvalNode::Number(3)]).to_string(), "(3,)");
+    }
+
+    #[test]
+    fn test_display_set() {
+        assert_eq!(EvalNode::Set(vec![
+            EvalNode::Number(2),
+            EvalNode::Add(
+                EvalNode::Set(vec![EvalNode::Number(-1)]),
+                EvalNode::Dice { num: 3, sides: 6, rolls: vec![3, 2, 1] },
+            ),
+            EvalNode::Dice { num: 1, sides: 20, rolls: vec![20] },
+        ]).to_string(), "(2, (-1,) + 3d6 (3, 2, 1), 1d20 (20))");
+    }
+
+    #[test]
     fn test_value() {
         assert_eq!(
             EvalNode::Add(
@@ -287,6 +341,20 @@ mod test_eval {
             39);
     }
 
+    #[test]
+    fn test_empty_set_value() {
+        assert_eq!(EvalNode::Set(vec![]).value().unwrap(), 0);
+    }
+
+    #[test]
+    fn test_set_value() {
+        assert_eq!(EvalNode::Set(vec![
+            EvalNode::Number(-3),
+            EvalNode::Dice { num: 1, sides: 20, rolls: vec![16] },
+            EvalNode::Add(EvalNode::Number(1), EvalNode::Dice { num: 1, sides: 12, rolls: vec![6] })
+        ]).value().unwrap(), 20);
+    }
+
 
     #[test]
     fn test_zero_division_err() {
@@ -296,6 +364,7 @@ mod test_eval {
         )
     }
 }
+
 
 #[cfg(test)]
 mod test_pipeline {

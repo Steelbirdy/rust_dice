@@ -15,6 +15,7 @@ pub enum EvalNode {
     Parens { inner: Box<EvalNode> },
     Number(i32),
     Dice { num: i32, sides: i32, rolls: Vec<i32> },
+    Set(Vec<EvalNode>)
 }
 
 impl EvalNode {
@@ -73,6 +74,12 @@ impl EvalNode {
             EvalNode::Dice { num: _, sides: _, rolls } => {
                 Ok(rolls.iter().sum())
             }
+            EvalNode::Set(items) => {
+                Ok(items
+                    .iter()
+                    .map(|n| n.value().unwrap())
+                    .sum())
+            }
         }
     }
 
@@ -98,6 +105,18 @@ impl EvalNode {
             EvalNode::Dice { num, sides, rolls } => {
                 let rolls_str = format!("{:?}", rolls);
                 format!("{}d{} ({})", num, sides, &rolls_str.as_str()[1..rolls_str.len() - 1])
+            }
+            EvalNode::Set(items) => {
+                if items.len() == 1 {
+                    format!("({},)", items[0].to_string())
+                } else {
+                    let set_str: String = items
+                        .iter()
+                        .map(|n| n.to_string())
+                        .collect::<Vec<String>>()
+                        .join(", ");
+                    format!("({})", set_str)
+                }
             }
         }
     }
