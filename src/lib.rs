@@ -159,6 +159,10 @@ mod test_parse {
         super::parse::parse(input_str)
     }
 
+    fn boxed(input_vec: Vec<Node>) -> Vec<Box<Node>> {
+        input_vec.into_iter().map(|n| Box::new(n)).collect()
+    }
+
     #[test]
     fn test_parse_number() {
         assert_eq!(
@@ -247,6 +251,32 @@ mod test_parse {
                             Node::Dice(3, 12)),
                         Node::Number(5)));
     }
+
+    #[test]
+    fn test_parse_empty_set() {
+        assert_eq!(
+            parse("()").unwrap(),
+            Node::Set(vec![]));
+    }
+
+    #[test]
+    fn test_parse_set_one_element() {
+        assert_eq!(parse("(1,)").unwrap(),
+                   Node::Set(boxed(vec![
+                       Node::Number(1)
+                   ])))
+    }
+
+    #[test]
+    fn test_parse_set() {
+        assert_eq!(parse("(1, 2d6, 5d4, -3 + 1d8)").unwrap(),
+        Node::Set(boxed(vec![
+            Node::Number(1),
+            Node::Dice(2, 6),
+            Node::Dice(5, 4),
+            Node::Add(Node::Number(-3), Node::Dice(1, 8)),
+        ])))
+    }
 }
 
 
@@ -255,7 +285,6 @@ mod test_eval {
     use super::eval::{
         EvalError,
         EvalNode,
-        Op,
     };
 
     #[test]

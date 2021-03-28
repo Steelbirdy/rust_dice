@@ -55,6 +55,13 @@ impl DiceParser {
         ))
     }
 
+    fn set(input: Node) -> ParseResult<ASTNode> {
+        Ok(match_nodes!(input.into_children();
+            [] => ASTNode::Set(vec![]),
+            [expr(items)..] => ASTNode::Set(items.map(|n| Box::new(n)).collect::<Vec<Box<ASTNode>>>()),
+        ))
+    }
+
     #[prec_climb(term, BINARY_PREC_CLIMBER)]
     fn expr(left: ASTNode, op: Node, right: ASTNode) -> ParseResult<ASTNode> {
         match op.as_rule() {
@@ -71,6 +78,7 @@ impl DiceParser {
             [number(x)] => ASTNode::Number(x),
             [dice(x)] => x,
             [parens(x)] => x,
+            [set(x)] => x,
         ))
     }
 
