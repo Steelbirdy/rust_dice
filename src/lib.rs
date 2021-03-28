@@ -8,12 +8,13 @@ mod parse;
 mod test_ast {
     use super::ast::{
         Child,
+        InnerNode,
         Node,
         Op,
     };
 
     fn boxed_child(op: Op, left: Child, right: Child) -> Child {
-        Some(Box::new(Node { op, left, right }))
+        Some(Box::new(Node::Node(InnerNode { op, left, right })))
     }
 
     #[test]
@@ -28,7 +29,7 @@ mod test_ast {
                                 Node::Dice(1, 4)),
                             Node::Number(1)),
                         Node::Dice(1, 20)),
-                    Node {
+                    Node::Node(InnerNode {
                         op: Op::Add,
                         left: boxed_child(
                             Op::Sub,
@@ -41,7 +42,7 @@ mod test_ast {
                                 boxed_child(Op::Dice { num: 1, sides: 4 }, None, None)),
                             boxed_child(Op::Number(1), None, None)),
                         right: boxed_child(Op::Dice { num: 1, sides: 20 }, None, None),
-                    }
+                    })
         )
     }
 }
@@ -321,11 +322,9 @@ mod test_eval {
         assert_eq!(EvalNode::Set(vec![
             EvalNode::Number(-3),
             EvalNode::Dice { num: 1, sides: 20, rolls: vec![16] },
-            EvalNode::Add(EvalNode::Number(1), EvalNode::Dice { num: 1, sides: 12, rolls: vec![6]})
+            EvalNode::Add(EvalNode::Number(1), EvalNode::Dice { num: 1, sides: 12, rolls: vec![6] })
         ]).value().unwrap(), 20);
     }
-
-
 
 
     #[test]
