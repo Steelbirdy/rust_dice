@@ -1,4 +1,5 @@
 mod ast;
+mod eval;
 mod expr;
 mod parse;
 
@@ -250,5 +251,45 @@ mod test_parse {
                             Node::Number(2),
                             Node::Dice(3, 12)),
                         Node::Number(5)));
+    }
+}
+
+#[cfg(test)]
+mod test_eval {
+    use super::eval::{
+        EvalNode,
+        Op,
+    };
+
+    #[test]
+    fn test_display() {
+        assert_eq!(
+            EvalNode::Add(
+                EvalNode::Sub(
+                    EvalNode::Number(1),
+                    EvalNode::Dice { num: 3, sides: 6, rolls: vec![1, 4, 2] }),
+                EvalNode::Mul(
+                    EvalNode::Dice { num: 1, sides: 20, rolls: vec![15] },
+                    EvalNode::Div(
+                        EvalNode::Number(6),
+                        EvalNode::Number(2))))
+                .to_string(),
+            "1 - 3d6 (1, 4, 2) + 1d20 (15) * 6 / 2");
+    }
+
+    #[test]
+    fn test_value() {
+        assert_eq!(
+            EvalNode::Add(
+                EvalNode::Sub(
+                    EvalNode::Number(1),
+                    EvalNode::Dice { num: 3, sides: 6, rolls: vec![1, 4, 2] }),
+                EvalNode::Mul(
+                    EvalNode::Dice { num: 1, sides: 20, rolls: vec![15] },
+                    EvalNode::Div(
+                        EvalNode::Number(6),
+                        EvalNode::Number(2))))
+                .value().unwrap(),
+            39);
     }
 }
