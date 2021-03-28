@@ -62,7 +62,6 @@ impl Node {
         } else {
             Node::new(Op::Neg, None, Some(inner))
         }
-
     }
 
     #[allow(non_snake_case)]
