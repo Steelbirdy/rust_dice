@@ -58,6 +58,7 @@ mod test_expr {
         ExprError,
         Expression,
     };
+    use super::test_parse::boxed;
 
     fn eval(head: Node) -> ExprResult<EvalNode> {
         Expression::from_seed(head, TEST_SEED).eval()
@@ -126,20 +127,37 @@ mod test_expr {
 
     #[test]
     fn test_zero_sides_err() {
-        assert_eq!(
-            eval(Node::Dice(1, 0)).unwrap_err(),
-            ExprError::ZeroSides,
+        assert_eq!( // 1d0
+                    eval(Node::Dice(1, 0)).unwrap_err(),
+                    ExprError::ZeroSides,
         )
     }
 
     #[test]
     fn test_expr_not_seeded() {
-        assert!( // 1d20 + 3
+        assert!( // 1d20 (?) + 3
                  Expression::new(
                      Node::Add(
                          Node::Dice(1, 20),
                          Node::Number(3))).eval().is_ok()
         )
+    }
+
+    #[test]
+    fn test_eval_dice_unary_minus() {
+        assert_eq!( // -3d20 (30)
+                    eval(Node::Neg(Node::Dice(3, 20))).unwrap(),
+                    -30);
+    }
+
+    #[test]
+    fn test_eval_set_unary_minus() {
+        assert_eq!( // -(1d6, -2)
+                    eval(Node::Set(boxed(vec![
+                        Node::Dice(1, 6),
+                        Node::Number(-2),
+                    ]))).unwrap(),
+                    -2);
     }
 }
 
@@ -159,7 +177,7 @@ mod test_parse {
         super::parse::parse(input_str)
     }
 
-    fn boxed(input_vec: Vec<Node>) -> Vec<Box<Node>> {
+    pub(crate) fn boxed(input_vec: Vec<Node>) -> Vec<Box<Node>> {
         input_vec.into_iter().map(|n| Box::new(n)).collect()
     }
 
@@ -270,12 +288,68 @@ mod test_parse {
     #[test]
     fn test_parse_set() {
         assert_eq!(parse("(1, 2d6, 5d4, -3 + 1d8)").unwrap(),
-        Node::Set(boxed(vec![
-            Node::Number(1),
-            Node::Dice(2, 6),
-            Node::Dice(5, 4),
-            Node::Add(Node::Number(-3), Node::Dice(1, 8)),
-        ])))
+                   Node::Set(boxed(vec![
+                       Node::Number(1),
+                       Node::Dice(2, 6),
+                       Node::Dice(5, 4),
+                       Node::Add(Node::Number(-3), Node::Dice(1, 8)),
+                   ])))
+    }
+
+    #[test]
+    fn test_parse_number_unary_plus() {
+        assert_eq!(parse("+1").unwrap(), Node::Number(1));
+    }
+
+    #[test]
+    fn test_parse_dice_unary_plus() {
+        assert_eq!(parse("+2d4").unwrap(), Node::Dice(2, 4));
+    }
+
+    #[test]
+    fn test_parse_set_unary_plus() {
+        assert_eq!(
+            parse("+(1, 1d6)").unwrap(),
+            Node::Set(boxed(vec![
+                Node::Number(1),
+                Node::Dice(1, 6),
+            ])))
+    }
+
+    #[test]
+    fn test_parse_number_unary_minus() {
+        assert_eq!(
+            parse("-1").unwrap(),
+            Node::Number(-1));
+    }
+
+    #[test]
+    fn test_parse_dice_unary_minus() {
+        assert_eq!(
+            parse("-2d4").unwrap(),
+            Node::Neg(Node::Dice(2, 4)));
+    }
+
+    #[test]
+    fn test_parse_set_unary_minus() {
+        assert_eq!(
+            parse("-(1, 3d6, 4 - 1d4)").unwrap(),
+            Node::Neg(Node::Set(boxed(vec![
+                Node::Number(1),
+                Node::Dice(3, 6),
+                Node::Sub(Node::Number(4), Node::Dice(1, 4))
+            ]))));
+    }
+
+    #[test]
+    fn test_parse_unary_op_precedence() {
+        assert_eq!(
+            parse("-2 * -1d4 - -2d6").unwrap(),
+            Node::Sub(
+                Node::Mul(
+                    Node::Number(-2),
+                    Node::Neg(Node::Dice(1, 4))),
+                Node::Neg(Node::Dice(2, 6))));
     }
 }
 
@@ -326,6 +400,15 @@ mod test_eval {
     }
 
     #[test]
+    fn test_display_unary_minus() {
+        assert_eq!(EvalNode::Neg(
+            EvalNode::Set(vec![
+                EvalNode::Number(2),
+                EvalNode::Dice { num: 1, sides: 6, rolls: vec![3] }
+            ])).to_string(), "-(2, 1d6 (3))");
+    }
+
+    #[test]
     fn test_value() {
         assert_eq!(
             EvalNode::Add(
@@ -355,6 +438,11 @@ mod test_eval {
         ]).value().unwrap(), 20);
     }
 
+    #[test]
+    fn test_unary_minus_value() {
+        assert_eq!(EvalNode::Neg(
+            EvalNode::Dice { num: 2, sides: 4, rolls: vec![2, 3] }).value().unwrap(), -5);
+    }
 
     #[test]
     fn test_zero_division_err() {
