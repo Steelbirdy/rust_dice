@@ -1,18 +1,20 @@
 WHITESPACE = _{ " " }
 
 atom = _{ dice | number | parens | set }
-  number = { ("+" | "-")? ~ ("0" | ASCII_NONZERO_DIGIT ~ ASCII_DIGIT*) }
-  dice = { number? ~ ^"d" ~ number }
+  number = @{ "0" | ASCII_NONZERO_DIGIT ~ ASCII_DIGIT* }
+  dice = @{ number? ~ ^"d" ~ number }
   parens = { "(" ~ expr ~ ")" }
   set = { "()" | "(" ~ expr ~ ",)" | "(" ~ expr ~ ("," ~ expr)+ ~ ")" }
 
+unary_operator = _{ add | sub }
 binary_operator = _{ add | sub | mul | div }
   add = { "+" }
   sub = { "-" }
   mul = { "*" }
   div = { "/" }
 
-expr = { term ~ (binary_operator ~ term)* }
-  term = { atom }
+expr = { unary_term ~ (binary_operator ~ unary_term)* }
+  unary_term = { unary_operator? ~ term }
+    term = { atom }
 
 calculation = { SOI ~ expr ~ EOI }
