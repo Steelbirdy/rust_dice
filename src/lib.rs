@@ -146,7 +146,7 @@ mod test_expr {
     #[test]
     fn test_eval_dice_unary_minus() {
         assert_eq!( // -3d20 (30)
-                    eval(Node::Neg(Node::Dice(3, 20))).unwrap(),
+                    eval(Node::Neg(Node::Dice(3, 20))).unwrap().value().unwrap(),
                     -30);
     }
 
@@ -156,7 +156,7 @@ mod test_expr {
                     eval(Node::Set(boxed(vec![
                         Node::Dice(1, 6),
                         Node::Number(-2),
-                    ]))).unwrap(),
+                    ]))).unwrap().value().unwrap(),
                     -2);
     }
 }
