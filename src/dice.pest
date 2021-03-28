@@ -2,7 +2,7 @@ WHITESPACE = _{ " " }
 
 atom = _{ dice | number | parens | set }
   number = @{ "0" | ASCII_NONZERO_DIGIT ~ ASCII_DIGIT* }
-  dice = @{ number? ~ ^"d" ~ number }
+  dice = { number? ~ ^"d" ~ number }
   parens = { "(" ~ expr ~ ")" }
   set = { "()" | "(" ~ expr ~ ",)" | "(" ~ expr ~ ("," ~ expr)+ ~ ")" }
 

@@ -84,6 +84,7 @@ impl DiceParser {
     fn unary_term(input: Node) -> ParseResult<ASTNode> {
         Ok(match_nodes!(input.into_children();
             [add(_), term(x)] => x,
+            [sub(_), number(x)] => ASTNode::Number(-x),
             [sub(_), term(x)] => ASTNode::Neg(x),
             [term(x)] => x,
         ))
