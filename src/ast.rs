@@ -1,3 +1,5 @@
+use std::borrow::Borrow;
+
 pub type Child = Option<Box<Node>>;
 
 
@@ -55,7 +57,12 @@ impl Node {
 
     #[allow(non_snake_case)]
     pub fn Neg(inner: Node) -> Self {
-        Node::new(Op::Neg, None, Some(inner))
+        if let Node::Node(InnerNode { op: Op::Number(x), left: None, right: None }) = inner {
+            Node::Number(-x)
+        } else {
+            Node::new(Op::Neg, None, Some(inner))
+        }
+
     }
 
     #[allow(non_snake_case)]
