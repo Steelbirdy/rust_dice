@@ -40,6 +40,14 @@ impl DiceParser {
         Ok(())
     }
 
+    fn add(_input: Node) -> ParseResult<()> {
+        Ok(())
+    }
+
+    fn sub(_input: Node) -> ParseResult<()> {
+        Ok(())
+    }
+
     fn number(input: Node) -> ParseResult<i32> {
         input
             .as_str()
@@ -62,7 +70,7 @@ impl DiceParser {
         ))
     }
 
-    #[prec_climb(term, BINARY_PREC_CLIMBER)]
+    #[prec_climb(unary_term, BINARY_PREC_CLIMBER)]
     fn expr(left: ASTNode, op: Node, right: ASTNode) -> ParseResult<ASTNode> {
         match op.as_rule() {
             Rule::add => Ok(ASTNode::Add(left, right)),
@@ -71,6 +79,15 @@ impl DiceParser {
             Rule::div => Ok(ASTNode::Div(left, right)),
             _ => Err(op.error(format!("Rule {:?} isn't an operator", right)))?
         }
+    }
+
+    fn unary_term(input: Node) -> ParseResult<ASTNode> {
+        Ok(match_nodes!(input.into_children();
+            [add(_), term(x)] => x,
+            [sub(_), number(x)] => ASTNode::Number(-x),
+            [sub(_), term(x)] => ASTNode::Neg(x),
+            [term(x)] => x,
+        ))
     }
 
     fn term(input: Node) -> ParseResult<ASTNode> {
