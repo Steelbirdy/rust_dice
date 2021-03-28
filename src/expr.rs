@@ -79,10 +79,14 @@ impl Expression {
                 Ok(x)
             }
             Op::Dice { num, sides } => {
-                Ok(compute_dice(num, sides, rng)
-                    .unwrap()
-                    .iter()
-                    .sum())
+                if sides == 0 {
+                    Err(ExprError::ZeroSides)
+                } else {
+                    Ok(compute_dice(num, sides, rng)
+                        .unwrap()
+                        .iter()
+                        .sum())
+                }
             }
         }
     }
@@ -90,15 +94,12 @@ impl Expression {
 
 fn compute_dice(num: i32, sides: i32, rng: &mut StdRng) -> EvalResult<Vec<i32>> {
     if num == 0 {
-        return Ok(vec![]);
+        Ok(vec![])
+    } else {
+        let distr = Uniform::new_inclusive(1, sides);
+        Ok(distr.sample_iter(rng)
+            .take(num as usize)
+            .collect()
+        )
     }
-    if sides == 0 {
-        return Err(ExprError::ZeroSides);
-    }
-
-    let distr = Uniform::new_inclusive(1, sides);
-    Ok(distr.sample_iter(rng)
-        .take(num as usize)
-        .collect()
-    )
 }
