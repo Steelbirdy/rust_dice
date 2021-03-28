@@ -12,6 +12,7 @@ pub enum EvalError {
 #[derive(Debug)]
 pub enum EvalNode {
     BinaryOp { op: Op, left: Box<EvalNode>, right: Box<EvalNode> },
+    UnaryOp { op: Op, inner: Box<EvalNode> },
     Parens { inner: Box<EvalNode> },
     Number(i32),
     Dice { num: i32, sides: i32, rolls: Vec<i32> },
@@ -37,6 +38,11 @@ impl EvalNode {
     #[allow(non_snake_case)]
     pub fn Div(left: EvalNode, right: EvalNode) -> Self {
         EvalNode::BinaryOp { op: Op::Div, left: Box::new(left), right: Box::new(right) }
+    }
+
+    #[allow(non_snake_case)]
+    pub fn Neg(inner: EvalNode) -> Self {
+        EvalNode::UnaryOp { op: Op::Neg, inner: Box::new(inner) }
     }
 
     pub fn value(&self) -> EvalResult<i32> {
@@ -68,6 +74,16 @@ impl EvalNode {
             EvalNode::Parens { inner } => {
                 Ok(inner.value().unwrap())
             }
+            EvalNode::UnaryOp { op, inner } => {
+                let inner = inner.value().unwrap();
+
+                match op {
+                    Op::Neg => {
+                        Ok(-inner)
+                    }
+                    _ => unreachable!()
+                }
+            }
             EvalNode::Number(x) => {
                 Ok(*x)
             }
@@ -98,6 +114,14 @@ impl EvalNode {
             }
             EvalNode::Parens { inner } => {
                 format!("({})", inner.to_string())
+            }
+            EvalNode::UnaryOp { op, inner } => {
+                match op {
+                    Op::Neg => {
+                        format!("-{}", inner.to_string())
+                    },
+                    _ => unreachable!(),
+                }
             }
             EvalNode::Number(x) => {
                 format!("{}", x)

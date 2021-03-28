@@ -153,10 +153,10 @@ mod test_expr {
     #[test]
     fn test_eval_set_unary_minus() {
         assert_eq!( // -(1d6, -2)
-                    eval(Node::Set(boxed(vec![
+                    eval(Node::Neg(Node::Set(boxed(vec![
                         Node::Dice(1, 6),
                         Node::Number(-2),
-                    ]))).unwrap().value().unwrap(),
+                    ])))).unwrap().value().unwrap(),
                     -2);
     }
 }

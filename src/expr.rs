@@ -57,6 +57,10 @@ impl Expression {
                         let inner = Self::eval_recursive(head.left.as_ref().unwrap(), &mut rng);
                         Ok(EvalNode::Parens { inner: Box::new(inner.unwrap()) })
                     }
+                    Op::Neg => {
+                        let inner = Self::eval_recursive(head.right.as_ref().unwrap(), &mut rng);
+                        Ok(EvalNode::UnaryOp { op: Op::Neg, inner: Box::new(inner.unwrap()) })
+                    }
                     Op::Number(x) => {
                         Ok(EvalNode::Number(*x))
                     }
