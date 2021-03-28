@@ -52,25 +52,26 @@ mod test_expr {
     use super::ast::Node;
     use super::expr::{
         TEST_SEED,
-        EvalResult,
+        EvalNode,
+        ExprResult,
         ExprError,
         Expression,
     };
 
-    fn eval(head: Node) -> EvalResult<i32> {
+    fn eval(head: Node) -> ExprResult<EvalNode> {
         Expression::from_seed(head, TEST_SEED).eval()
     }
 
     #[test]
     fn test_eval_single_num() {
         assert_eq!( // 2
-                    eval(Node::Number(2)).unwrap(), 2);
+                    eval(Node::Number(2)).unwrap().value().unwrap(), 2);
     }
 
     #[test]
     fn test_eval_single_num_op() {
         assert_eq!( // 1 + 1
-                    eval(Node::Add(Node::Number(1), Node::Number(1))).unwrap(), 2);
+                    eval(Node::Add(Node::Number(1), Node::Number(1))).unwrap().value().unwrap(), 2);
     }
 
     #[test]
@@ -89,23 +90,23 @@ mod test_expr {
                                 Node::Number(-5),
                             ),
                             Node::Number(1),
-                        )).unwrap(), 12);
+                        )).unwrap().value().unwrap(), 12);
     }
 
     #[test]
     fn test_expression_eval_with_dice() {
         assert_eq!( // 1d20 (14)
-                    eval(Node::Dice(1, 20)).unwrap(), 14);
+                    eval(Node::Dice(1, 20)).unwrap().value().unwrap(), 14);
 
         assert_eq!( // 6d6 (23)
-                    eval(Node::Dice(6, 6)).unwrap(), 23);
+                    eval(Node::Dice(6, 6)).unwrap().value().unwrap(), 23);
 
         assert_eq!( // 4d12 (27) + 4
                     eval(
                         Node::Add(
                             Node::Dice(4, 12),
                             Node::Number(4),
-                        )).unwrap(), 31);
+                        )).unwrap().value().unwrap(), 31);
 
         assert_eq!( // 2d10 (10) + 2 * 3d4 (8) - 5
                     eval(
@@ -119,15 +120,7 @@ mod test_expr {
                                 Node::Number(5),
                             ),
                         )
-                    ).unwrap(), 21);
-    }
-
-    #[test]
-    fn test_zero_division_err() {
-        assert_eq!(
-            eval(Node::Div(Node::Number(1), Node::Number(0))).unwrap_err(),
-            ExprError::ZeroDivision,
-        )
+                    ).unwrap().value().unwrap(), 21);
     }
 
     #[test]
@@ -257,6 +250,7 @@ mod test_parse {
 #[cfg(test)]
 mod test_eval {
     use super::eval::{
+        EvalError,
         EvalNode,
         Op,
     };
@@ -291,5 +285,71 @@ mod test_eval {
                         EvalNode::Number(2))))
                 .value().unwrap(),
             39);
+    }
+
+
+    #[test]
+    fn test_zero_division_err() {
+        assert_eq!(
+            EvalNode::Div(EvalNode::Number(1), EvalNode::Number(0)).value().unwrap_err(),
+            EvalError::ZeroDivision,
+        )
+    }
+}
+
+#[cfg(test)]
+mod test_pipeline {
+    use super::{
+        expr::{
+            Expression,
+            TEST_SEED,
+        },
+        parse::parse,
+    };
+
+    fn run(input_str: &str, expected_value: i32, expected_str: &str) {
+        let result = Expression::from_seed(parse(input_str).unwrap(), TEST_SEED).eval().unwrap();
+        assert_eq!(result.value().unwrap(), expected_value);
+        assert_eq!(result.to_string(), expected_str);
+    }
+
+    #[test]
+    fn test_single_number() {
+        run("3", 3, "3");
+    }
+
+    #[test]
+    fn test_single_dice() {
+        run("2d4", 4, "2d4 (3, 1)");
+    }
+
+    #[test]
+    fn test_add() {
+        run("1d20 + 5", 19, "1d20 (14) + 5");
+    }
+
+    #[test]
+    fn test_sub() {
+        run("2d10 - 3", 7, "2d10 (7, 3) - 3");
+    }
+
+    #[test]
+    fn test_mul() {
+        run("4 * 6d6", 92, "4 * 6d6 (4, 2, 4, 5, 3, 5)");
+    }
+
+    #[test]
+    fn test_div() {
+        run("4 / 1d6", 1, "4 / 1d6 (4)");
+    }
+
+    #[test]
+    fn test_compound_expr() {
+        run("1d20 - 1d4 * 2 + 7", 19, "1d20 (14) - 1d4 (1) * 2 + 7");
+    }
+
+    #[test]
+    fn test_parens() {
+        run("1d20 * (2 + 1d4)", 42, "1d20 (14) * (2 + 1d4 (1))");
     }
 }
