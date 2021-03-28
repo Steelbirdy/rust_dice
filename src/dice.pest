@@ -1,9 +1,10 @@
 WHITESPACE = _{ " " }
 
-atom = _{ dice | number | parens }
+atom = _{ dice | number | parens | set }
   number = { ("+" | "-")? ~ ("0" | ASCII_NONZERO_DIGIT ~ ASCII_DIGIT*) }
   dice = { number? ~ ^"d" ~ number }
   parens = { "(" ~ expr ~ ")" }
+  set = { "()" | "(" ~ expr ~ ",)" | "(" ~ expr ~ ("," ~ expr)+ ~ ")" }
 
 binary_operator = _{ add | sub | mul | div }
   add = { "+" }

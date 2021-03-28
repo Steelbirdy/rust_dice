@@ -142,6 +142,7 @@ mod test_expr {
     }
 }
 
+
 #[cfg(test)]
 mod test_parse {
     use super::ast::{
@@ -247,6 +248,7 @@ mod test_parse {
     }
 }
 
+
 #[cfg(test)]
 mod test_eval {
     use super::eval::{
@@ -269,6 +271,28 @@ mod test_eval {
                         EvalNode::Number(2))))
                 .to_string(),
             "1 - 3d6 (1, 4, 2) + 1d20 (15) * 6 / 2");
+    }
+
+    #[test]
+    fn test_display_empty_set() {
+        assert_eq!(EvalNode::Set(vec![]).to_string(), "()");
+    }
+
+    #[test]
+    fn test_display_one_length_set() {
+        assert_eq!(EvalNode::Set(vec![EvalNode::Number(3)]).to_string(), "(3,)");
+    }
+
+    #[test]
+    fn test_display_set() {
+        assert_eq!(EvalNode::Set(vec![
+            EvalNode::Number(2),
+            EvalNode::Add(
+                EvalNode::Set(vec![EvalNode::Number(-1)]),
+                EvalNode::Dice { num: 3, sides: 6, rolls: vec![3, 2, 1] },
+            ),
+            EvalNode::Dice { num: 1, sides: 20, rolls: vec![20] },
+        ]).to_string(), "(2, (-1,) + 3d6 (3, 2, 1), 1d20 (20))");
     }
 
     #[test]
@@ -296,6 +320,7 @@ mod test_eval {
         )
     }
 }
+
 
 #[cfg(test)]
 mod test_pipeline {
