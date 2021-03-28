@@ -10,22 +10,21 @@ use crate::ast::{
     Node,
     Op
 };
+pub use crate::eval::EvalNode;
 
 
 pub const TEST_SEED: u64 = 10353;
 
+pub type ExprResult<T> = Result<T, ExprError>;
 
-pub type EvalResult<T> = Result<T, ExprError>;
+#[derive(Debug, Eq, PartialEq)]
+pub enum ExprError {
+    ZeroSides,
+}
 
 pub struct Expression {
     head: Option<Node>,
     seed: Option<u64>,
-}
-
-#[derive(Debug, Eq, PartialEq)]
-pub enum ExprError {
-    ZeroDivision,
-    ZeroSides,
 }
 
 
@@ -38,64 +37,45 @@ impl Expression {
         Expression { head: Some(head), seed: Some(seed) }
     }
 
-    pub fn eval(&self) -> EvalResult<i32> {
+    pub fn eval(&self) -> ExprResult<EvalNode> {
         let mut rng: StdRng = if let Some(seed) = self.seed { StdRng::seed_from_u64(seed) } else { StdRng::from_entropy() };
         Self::eval_recursive(&self.head.as_ref().expect("Head not initialized"), &mut rng)
     }
 
-    fn eval_recursive(head: &Node, mut rng: &mut StdRng) -> EvalResult<i32> {
-        let mut l: Option<i32> = None;
-        let mut r: Option<i32> = None;
-
-        if let Some(left) = &head.left {
-            l = Some(Self::eval_recursive(left, &mut rng).unwrap());
-        }
-
-        if let Some(right) = &head.right {
-            r = Some(Self::eval_recursive(right, &mut rng).unwrap());
-        }
-
-        let l = if let Some(x) = l { x } else { 0 };
-        let r = if let Some(x) = r { x } else { 0 };
-
-        match head.op {
-            Op::Add => {
-                Ok(l + r)
-            }
-            Op::Sub => {
-                Ok(l - r)
-            }
-            Op::Mul => {
-                Ok(l * r)
-            }
-            Op::Div => {
-                if r == 0 {
-                    Err(ExprError::ZeroDivision)
-                } else {
-                    Ok(l / r)
-                }
+    fn eval_recursive(head: &Node, mut rng: &mut StdRng) -> ExprResult<EvalNode> {
+        match &head.op {
+            Op::Parens => {
+                let inner = Self::eval_recursive(head.left.as_ref().unwrap(), &mut rng);
+                Ok(EvalNode::Parens { inner: Box::new(inner.unwrap()) })
             }
             Op::Number(x) => {
-                Ok(x)
+                Ok(EvalNode::Number(*x))
             }
-            Op::Dice { num, sides } => {
-                compute_dice(num, sides, rng)
+            &Op::Dice { num, sides } => {
+                if sides == 0 {
+                    Err(ExprError::ZeroSides)
+                } else {
+                    let rolls = compute_dice(num, sides, &mut rng);
+                    Ok(EvalNode::Dice { num, sides, rolls: rolls.unwrap() })
+                }
+            }
+            _ => {
+                let left = Self::eval_recursive(head.left.as_ref().unwrap(), &mut rng);
+                let right = Self::eval_recursive(head.right.as_ref().unwrap(), &mut rng);
+                Ok(EvalNode::BinaryOp { op: head.op, left: Box::new(left.unwrap()), right: Box::new(right.unwrap()) })
             }
         }
     }
 }
 
-fn compute_dice(num: i32, sides: i32, rng: &mut StdRng) -> EvalResult<i32> {
+fn compute_dice(num: i32, sides: i32, rng: &mut StdRng) -> ExprResult<Vec<i32>> {
     if num == 0 {
-        return Ok(0);
+        Ok(vec![])
+    } else {
+        let distr = Uniform::new_inclusive(1, sides);
+        Ok(distr.sample_iter(rng)
+            .take(num as usize)
+            .collect()
+        )
     }
-    if sides == 0 {
-        return Err(ExprError::ZeroSides);
-    }
-
-    let distr = Uniform::new_inclusive(1, sides);
-    Ok(distr.sample_iter(rng)
-        .take(num as usize)
-        .sum()
-    )
 }

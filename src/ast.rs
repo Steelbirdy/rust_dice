@@ -8,12 +8,13 @@ pub struct Node {
     pub right: Child,
 }
 
-#[derive(Debug, Eq, PartialEq)]
+#[derive(Copy, Clone, Debug, Eq, PartialEq)]
 pub enum Op {
     Add,
     Sub,
     Mul,
     Div,
+    Parens,
     Number(i32),
     Dice { num: i32, sides: i32 },
 }
@@ -45,6 +46,11 @@ impl Node {
     #[allow(non_snake_case)]
     pub fn Div(left: Node, right: Node) -> Node {
         Node::new(Op::Div, Some(left), Some(right))
+    }
+
+    #[allow(non_snake_case)]
+    pub fn Parens(inner: Node) -> Node {
+        Node::new(Op::Parens, Some(inner), None)
     }
 
     #[allow(non_snake_case)]
