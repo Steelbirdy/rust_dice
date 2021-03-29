@@ -11,6 +11,7 @@ mod test_ast {
         InnerNode,
         Node,
         Op,
+        SetOps,
     };
 
     fn boxed_child(op: Op, left: Child, right: Child) -> Child {
@@ -24,11 +25,11 @@ mod test_ast {
                         Node::Sub(
                             Node::Mul(
                                 Node::Div(
-                                    Node::Dice(3, 6),
+                                    Node::Dice(3, 6, None),
                                     Node::Number(2)),
-                                Node::Dice(1, 4)),
+                                Node::Dice(1, 4, None)),
                             Node::Number(1)),
-                        Node::Dice(1, 20)),
+                        Node::Dice(1, 20, None)),
                     Node::Node(InnerNode {
                         op: Op::Add,
                         left: boxed_child(
@@ -37,11 +38,11 @@ mod test_ast {
                                 Op::Mul,
                                 boxed_child(
                                     Op::Div,
-                                    boxed_child(Op::Dice { num: 3, sides: 6 }, None, None),
+                                    boxed_child(Op::Dice { num: 3, sides: 6, ops: SetOps::default() }, None, None),
                                     boxed_child(Op::Number(2), None, None)),
-                                boxed_child(Op::Dice { num: 1, sides: 4 }, None, None)),
+                                boxed_child(Op::Dice { num: 1, sides: 4, ops: SetOps::default() }, None, None)),
                             boxed_child(Op::Number(1), None, None)),
-                        right: boxed_child(Op::Dice { num: 1, sides: 20 }, None, None),
+                        right: boxed_child(Op::Dice { num: 1, sides: 20, ops: SetOps::default() }, None, None),
                     })
         )
     }
@@ -50,7 +51,10 @@ mod test_ast {
 
 #[cfg(test)]
 mod test_expr {
-    use super::ast::Node;
+    use super::ast::{
+        Node,
+        SetOps,
+    };
     use super::expr::{
         TEST_SEED,
         EvalNode,
@@ -98,26 +102,26 @@ mod test_expr {
     #[test]
     fn test_expression_eval_with_dice() {
         assert_eq!( // 1d20 (14)
-                    eval(Node::Dice(1, 20)).unwrap().value().unwrap(), 14);
+                    eval(Node::Dice(1, 20, None)).unwrap().value().unwrap(), 14);
 
         assert_eq!( // 6d6 (23)
-                    eval(Node::Dice(6, 6)).unwrap().value().unwrap(), 23);
+                    eval(Node::Dice(6, 6, None)).unwrap().value().unwrap(), 23);
 
         assert_eq!( // 4d12 (27) + 4
                     eval(
                         Node::Add(
-                            Node::Dice(4, 12),
+                            Node::Dice(4, 12, None),
                             Node::Number(4),
                         )).unwrap().value().unwrap(), 31);
 
         assert_eq!( // 2d10 (10) + 2 * 3d4 (8) - 5
                     eval(
                         Node::Add(
-                            Node::Dice(2, 10),
+                            Node::Dice(2, 10, None),
                             Node::Sub(
                                 Node::Mul(
                                     Node::Number(2),
-                                    Node::Dice(3, 4),
+                                    Node::Dice(3, 4, None),
                                 ),
                                 Node::Number(5),
                             ),
@@ -128,7 +132,7 @@ mod test_expr {
     #[test]
     fn test_zero_sides_err() {
         assert_eq!( // 1d0
-                    eval(Node::Dice(1, 0)).unwrap_err(),
+                    eval(Node::Dice(1, 0, None)).unwrap_err(),
                     ExprError::ZeroSides,
         )
     }
@@ -138,7 +142,7 @@ mod test_expr {
         assert!( // 1d20 (?) + 3
                  Expression::new(
                      Node::Add(
-                         Node::Dice(1, 20),
+                         Node::Dice(1, 20, None),
                          Node::Number(3))).eval().is_ok()
         )
     }
@@ -146,17 +150,17 @@ mod test_expr {
     #[test]
     fn test_eval_dice_unary_minus() {
         assert_eq!( // -3d20 (30)
-                    eval(Node::Neg(Node::Dice(3, 20))).unwrap().value().unwrap(),
+                    eval(Node::Neg(Node::Dice(3, 20, None))).unwrap().value().unwrap(),
                     -30);
     }
 
     #[test]
     fn test_eval_set_unary_minus() {
         assert_eq!( // -(1d6, -2)
-                    eval(Node::Neg(Node::Set(boxed(vec![
-                        Node::Dice(1, 6),
+                    eval(Node::Neg(Node::Set { set: boxed(vec![
+                        Node::Dice(1, 6, None),
                         Node::Number(-2),
-                    ])))).unwrap().value().unwrap(),
+                    ]), ops: SetOps::default() })).unwrap().value().unwrap(),
                     -2);
     }
 }
@@ -166,6 +170,7 @@ mod test_expr {
 mod test_parse {
     use super::ast::{
         Node,
+        SetOps,
     };
 
     use super::parse::{
@@ -192,7 +197,7 @@ mod test_parse {
     fn test_parse_dice() {
         assert_eq!( // 1d20
                     parse("1d20").unwrap(),
-                    Node::Dice(1, 20));
+                    Node::Dice(1, 20, None));
     }
 
     #[test]
@@ -206,21 +211,21 @@ mod test_parse {
     fn test_parse_parens_single_dice() {
         assert_eq!( // (1d10)
                     parse("(1d10)").unwrap(),
-                    Node::Parens(Node::Dice(1, 10)));
+                    Node::Parens(Node::Dice(1, 10, None)));
     }
 
     #[test]
     fn test_parse_implicit_dice_count_single_digit() {
         assert_eq!( // d6
                     parse("d6").unwrap(),
-                    Node::Dice(1, 6));
+                    Node::Dice(1, 6, None));
     }
 
     #[test]
     fn test_parse_implicit_dice_count_multi_digit() {
         assert_eq!( // d12
                     parse("d12").unwrap(),
-                    Node::Dice(1, 12));
+                    Node::Dice(1, 12, None));
     }
 
     #[test]
@@ -229,7 +234,7 @@ mod test_parse {
                     parse("1+ 2d10").unwrap(),
                     Node::Add(
                         Node::Number(1),
-                        Node::Dice(2, 10)));
+                        Node::Dice(2, 10, None)));
     }
 
     #[test]
@@ -237,7 +242,7 @@ mod test_parse {
         assert_eq!( // 3d6 - 4
                     parse("3d6 -4").unwrap(),
                     Node::Sub(
-                        Node::Dice(3, 6),
+                        Node::Dice(3, 6, None),
                         Node::Number(4)));
     }
 
@@ -247,7 +252,7 @@ mod test_parse {
                     parse("2 * 4d4").unwrap(),
                     Node::Mul(
                         Node::Number(2),
-                        Node::Dice(4, 4)));
+                        Node::Dice(4, 4, None)));
     }
 
     #[test]
@@ -266,7 +271,7 @@ mod test_parse {
                     Node::Sub(
                         Node::Mul(
                             Node::Number(2),
-                            Node::Dice(3, 12)),
+                            Node::Dice(3, 12, None)),
                         Node::Number(5)));
     }
 
@@ -274,26 +279,26 @@ mod test_parse {
     fn test_parse_empty_set() {
         assert_eq!(
             parse("()").unwrap(),
-            Node::Set(vec![]));
+            Node::Set { set: vec![], ops: SetOps::default() });
     }
 
     #[test]
     fn test_parse_set_one_element() {
         assert_eq!(parse("(1,)").unwrap(),
-                   Node::Set(boxed(vec![
+                   Node::Set { set: boxed(vec![
                        Node::Number(1)
-                   ])))
+                   ]), ops: SetOps::default() })
     }
 
     #[test]
     fn test_parse_set() {
         assert_eq!(parse("(1, 2d6, 5d4, -3 + 1d8)").unwrap(),
-                   Node::Set(boxed(vec![
+                   Node::Set { set: boxed(vec![
                        Node::Number(1),
-                       Node::Dice(2, 6),
-                       Node::Dice(5, 4),
-                       Node::Add(Node::Number(-3), Node::Dice(1, 8)),
-                   ])))
+                       Node::Dice(2, 6, None),
+                       Node::Dice(5, 4, None),
+                       Node::Add(Node::Number(-3), Node::Dice(1, 8, None)),
+                   ]), ops: SetOps::default() })
     }
 
     #[test]
@@ -303,17 +308,17 @@ mod test_parse {
 
     #[test]
     fn test_parse_dice_unary_plus() {
-        assert_eq!(parse("+2d4").unwrap(), Node::Dice(2, 4));
+        assert_eq!(parse("+2d4").unwrap(), Node::Dice(2, 4, None));
     }
 
     #[test]
     fn test_parse_set_unary_plus() {
         assert_eq!(
             parse("+(1, 1d6)").unwrap(),
-            Node::Set(boxed(vec![
+            Node::Set { set: boxed(vec![
                 Node::Number(1),
-                Node::Dice(1, 6),
-            ])))
+                Node::Dice(1, 6, None),
+            ]), ops: SetOps::default() })
     }
 
     #[test]
@@ -327,18 +332,18 @@ mod test_parse {
     fn test_parse_dice_unary_minus() {
         assert_eq!(
             parse("-2d4").unwrap(),
-            Node::Neg(Node::Dice(2, 4)));
+            Node::Neg(Node::Dice(2, 4, None)));
     }
 
     #[test]
     fn test_parse_set_unary_minus() {
         assert_eq!(
             parse("-(1, 3d6, 4 - 1d4)").unwrap(),
-            Node::Neg(Node::Set(boxed(vec![
+            Node::Neg(Node::Set { set: boxed(vec![
                 Node::Number(1),
-                Node::Dice(3, 6),
-                Node::Sub(Node::Number(4), Node::Dice(1, 4))
-            ]))));
+                Node::Dice(3, 6, None),
+                Node::Sub(Node::Number(4), Node::Dice(1, 4, None))
+            ]), ops: SetOps::default() }));
     }
 
     #[test]
@@ -348,8 +353,8 @@ mod test_parse {
             Node::Sub(
                 Node::Mul(
                     Node::Number(-2),
-                    Node::Neg(Node::Dice(1, 4))),
-                Node::Neg(Node::Dice(2, 6))));
+                    Node::Neg(Node::Dice(1, 4, None))),
+                Node::Neg(Node::Dice(2, 6, None))));
     }
 }
 

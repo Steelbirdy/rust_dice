@@ -4,7 +4,7 @@ pub type Child = Option<Box<Node>>;
 #[derive(Debug, Eq, PartialEq)]
 pub enum Node {
     Node(InnerNode),
-    Set(Vec<Box<Node>>),
+    Set { set: Vec<Box<Node>>, ops: SetOps },
 }
 
 
@@ -24,7 +24,20 @@ pub enum Op {
     Neg,
     Parens,
     Number(i32),
-    Dice { num: i32, sides: i32 },
+    Dice { num: i32, sides: i32, ops: SetOps },
+}
+
+#[derive(Copy, Clone, Debug, Eq, PartialEq)]
+pub struct SetOps {
+    keep: Option<SetSelector>,
+    drop: Option<SetSelector>,
+}
+
+#[derive(Copy, Clone, Debug, Eq, PartialEq)]
+enum SetSelector {
+    Literal(i32),
+    Highest(i32),
+    Lowest(i32),
 }
 
 
@@ -76,7 +89,15 @@ impl Node {
     }
 
     #[allow(non_snake_case)]
-    pub fn Dice(num: i32, sides: i32) -> Self {
-        Node::new(Op::Dice { num, sides }, None, None)
+    pub fn Dice(num: i32, sides: i32, ops: Option<SetOps>) -> Self {
+        let ops = ops.unwrap_or(SetOps::default());
+        Node::new(Op::Dice { num, sides, ops }, None, None)
+    }
+}
+
+
+impl Default for SetOps {
+    fn default() -> Self {
+        SetOps { keep: None, drop: None }
     }
 }

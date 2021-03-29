@@ -9,7 +9,7 @@ pub enum EvalError {
     ZeroSides,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Eq, PartialEq)]
 pub enum EvalNode {
     BinaryOp { op: Op, left: Box<EvalNode>, right: Box<EvalNode> },
     UnaryOp { op: Op, inner: Box<EvalNode> },

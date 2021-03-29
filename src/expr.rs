@@ -44,9 +44,9 @@ impl Expression {
 
     fn eval_recursive(head: &Node, mut rng: &mut StdRng) -> ExprResult<EvalNode> {
         match head {
-            Node::Set(items) => {
+            Node::Set { set, ops: _ } => {
                 Ok(
-                    EvalNode::Set(items
+                    EvalNode::Set(set
                         .iter()
                         .map(|n| Self::eval_recursive(n.as_ref(), &mut rng).unwrap())
                         .collect::<Vec<EvalNode>>()))
@@ -64,7 +64,7 @@ impl Expression {
                     Op::Number(x) => {
                         Ok(EvalNode::Number(*x))
                     }
-                    &Op::Dice { num, sides } => {
+                    &Op::Dice { num, sides, ops } => {
                         if sides == 0 {
                             Err(ExprError::ZeroSides)
                         } else {

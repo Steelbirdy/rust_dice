@@ -9,6 +9,7 @@ use pest_consume::{
 };
 use crate::ast::{
     Node as ASTNode,
+    SetOps,
 };
 
 pub type ParseResult<T> = Result<T, Error<Rule>>;
@@ -58,15 +59,20 @@ impl DiceParser {
 
     fn dice(input: Node) -> ParseResult<ASTNode> {
         Ok(match_nodes!(input.into_children();
-            [number(num), number(sides)] => ASTNode::Dice(num, sides),
-            [number(sides)] => ASTNode::Dice(1, sides),
+            [number(num), number(sides)] => ASTNode::Dice(num, sides, None),
+            [number(sides)] => ASTNode::Dice(1, sides, None),
         ))
     }
 
     fn set(input: Node) -> ParseResult<ASTNode> {
         Ok(match_nodes!(input.into_children();
-            [] => ASTNode::Set(vec![]),
-            [expr(items)..] => ASTNode::Set(items.map(|n| Box::new(n)).collect::<Vec<Box<ASTNode>>>()),
+            [] => ASTNode::Set { set: vec![], ops: SetOps::default() },
+            [expr(items)..] => {
+                ASTNode::Set { set: items
+                    .map(|n| Box::new(n))
+                    .collect::<Vec<Box<ASTNode>>>(),
+                               ops: SetOps::default()
+               }},
         ))
     }
 
