@@ -137,8 +137,12 @@ impl EvalNode {
                 format!("{}", x)
             }
             EvalNode::Dice { num, sides, rolls } => {
-                let rolls_str = format!("{:?}", rolls);
-                format!("{}d{} ({})", num, sides, &rolls_str.as_str()[1..rolls_str.len() - 1])
+                let rolls_str: String = rolls
+                    .iter()
+                    .map(|r| r.to_string())
+                    .collect::<Vec<String>>()
+                    .join(", ");
+                format!("{}d{} ({})", num, sides, rolls_str)
             }
             EvalNode::Set(items) => {
                 if items.len() == 1 {
@@ -166,5 +170,13 @@ impl DiceRoll {
             .into_iter()
             .map(|value| DiceRoll { value, kept: true })
             .collect()
+    }
+
+    pub fn to_string(&self) -> String {
+        if self.kept {
+            format!("{}", self.value)
+        } else {
+            format!("~~{}~~", self.value)
+        }
     }
 }

@@ -34,7 +34,7 @@ pub struct SetOps {
 }
 
 #[derive(Copy, Clone, Debug, Eq, PartialEq)]
-enum SetSelector {
+pub enum SetSelector {
     Literal(i32),
     Highest(i32),
     Lowest(i32),
@@ -99,5 +99,27 @@ impl Node {
 impl Default for SetOps {
     fn default() -> Self {
         SetOps { keep: None, drop: None }
+    }
+}
+
+impl SetOps {
+    pub fn build(items: Vec<(String, SetSelector)>) -> Self {
+        let mut ops = SetOps::default();
+
+        for (chr, sel) in items {
+            let chr = chr.as_str();
+            match chr {
+                "k" => {
+                    ops.keep = Some(sel);
+                }
+                "l" => {
+                    ops.drop = Some(sel);
+                }
+                _ => panic!("Invalid set operator `{}`", chr)
+            }
+        }
+
+        let ops = ops;
+        ops
     }
 }

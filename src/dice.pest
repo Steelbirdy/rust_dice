@@ -1,20 +1,19 @@
 WHITESPACE = _{ " " }
 
-atom = _{ dice_expr | number | parens | set_expr }
-  number = @{ "0" | ASCII_NONZERO_DIGIT ~ ASCII_DIGIT* }
-  dice_expr = { dice ~ set_operation* }
-    dice = { number? ~ ^"d" ~ number }
-  parens = { "(" ~ expr ~ ")" }
-  set_expr = { set ~ set_operation* }
-    set = { "()" | "(" ~ expr ~ ",)" | "(" ~ expr ~ ("," ~ expr)+ ~ ")" }
+number = @{ "0" | ASCII_NONZERO_DIGIT ~ ASCII_DIGIT* }
+dice_expr = { dice ~ set_operation* }
+  dice = { number? ~ ^"d" ~ number }
+parens = { "(" ~ expr ~ ")" }
+set_expr = { set ~ set_operation* }
+  set = { "()" | "(" ~ expr ~ ",)" | "(" ~ expr ~ ("," ~ expr)+ ~ ")" }
 
 set_operation = { set_operator ~ set_selector }
   set_operator = _{ keep | drop }
-    keep = { "k" }
-    drop = { "p" }
-  set_selector = _{ number | highest | lowest }
-    highest = { "h" ~ number }
-    lowest = { "l" ~ number }
+    keep = _{ "k" }
+    drop = _{ "p" }
+  set_selector = { number | highest | lowest }
+    highest = _{ "h" ~ number }
+    lowest = _{ "l" ~ number }
 
 unary_operator = _{ add | sub }
 binary_operator = _{ add | sub | mul | div }
@@ -25,6 +24,6 @@ binary_operator = _{ add | sub | mul | div }
 
 expr = { unary_term ~ (binary_operator ~ unary_term)* }
   unary_term = { unary_operator? ~ term }
-    term = { atom }
+    term = { dice_expr | number | parens | set_expr }
 
 calculation = { SOI ~ expr ~ EOI }
