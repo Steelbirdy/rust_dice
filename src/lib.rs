@@ -362,6 +362,7 @@ mod test_parse {
 #[cfg(test)]
 mod test_eval {
     use super::eval::{
+        DiceRoll,
         EvalError,
         EvalNode,
     };
@@ -372,9 +373,9 @@ mod test_eval {
             EvalNode::Add(
                 EvalNode::Sub(
                     EvalNode::Number(1),
-                    EvalNode::Dice { num: 3, sides: 6, rolls: vec![1, 4, 2] }),
+                    EvalNode::Dice { num: 3, sides: 6, rolls: DiceRoll::build(vec![1, 4, 2]) }),
                 EvalNode::Mul(
-                    EvalNode::Dice { num: 1, sides: 20, rolls: vec![15] },
+                    EvalNode::Dice { num: 1, sides: 20, rolls: DiceRoll::build(vec![15]) },
                     EvalNode::Div(
                         EvalNode::Number(6),
                         EvalNode::Number(2))))
@@ -398,9 +399,9 @@ mod test_eval {
             EvalNode::Number(2),
             EvalNode::Add(
                 EvalNode::Set(vec![EvalNode::Number(-1)]),
-                EvalNode::Dice { num: 3, sides: 6, rolls: vec![3, 2, 1] },
+                EvalNode::Dice { num: 3, sides: 6, rolls: DiceRoll::build(vec![3, 2, 1]) },
             ),
-            EvalNode::Dice { num: 1, sides: 20, rolls: vec![20] },
+            EvalNode::Dice { num: 1, sides: 20, rolls: DiceRoll::build(vec![20]) },
         ]).to_string(), "(2, (-1,) + 3d6 (3, 2, 1), 1d20 (20))");
     }
 
@@ -409,7 +410,7 @@ mod test_eval {
         assert_eq!(EvalNode::Neg(
             EvalNode::Set(vec![
                 EvalNode::Number(2),
-                EvalNode::Dice { num: 1, sides: 6, rolls: vec![3] }
+                EvalNode::Dice { num: 1, sides: 6, rolls: DiceRoll::build(vec![3]) }
             ])).to_string(), "-(2, 1d6 (3))");
     }
 
@@ -419,9 +420,9 @@ mod test_eval {
             EvalNode::Add(
                 EvalNode::Sub(
                     EvalNode::Number(1),
-                    EvalNode::Dice { num: 3, sides: 6, rolls: vec![1, 4, 2] }),
+                    EvalNode::Dice { num: 3, sides: 6, rolls: DiceRoll::build(vec![1, 4, 2]) }),
                 EvalNode::Mul(
-                    EvalNode::Dice { num: 1, sides: 20, rolls: vec![15] },
+                    EvalNode::Dice { num: 1, sides: 20, rolls: DiceRoll::build(vec![15]) },
                     EvalNode::Div(
                         EvalNode::Number(6),
                         EvalNode::Number(2))))
@@ -438,15 +439,15 @@ mod test_eval {
     fn test_set_value() {
         assert_eq!(EvalNode::Set(vec![
             EvalNode::Number(-3),
-            EvalNode::Dice { num: 1, sides: 20, rolls: vec![16] },
-            EvalNode::Add(EvalNode::Number(1), EvalNode::Dice { num: 1, sides: 12, rolls: vec![6] })
+            EvalNode::Dice { num: 1, sides: 20, rolls: DiceRoll::build(vec![16]) },
+            EvalNode::Add(EvalNode::Number(1), EvalNode::Dice { num: 1, sides: 12, rolls: DiceRoll::build(vec![6]) })
         ]).value().unwrap(), 20);
     }
 
     #[test]
     fn test_unary_minus_value() {
         assert_eq!(EvalNode::Neg(
-            EvalNode::Dice { num: 2, sides: 4, rolls: vec![2, 3] }).value().unwrap(), -5);
+            EvalNode::Dice { num: 2, sides: 4, rolls: DiceRoll::build(vec![2, 3]) }).value().unwrap(), -5);
     }
 
     #[test]

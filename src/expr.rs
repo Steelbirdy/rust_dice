@@ -10,7 +10,10 @@ use crate::ast::{
     Node,
     Op
 };
-pub use crate::eval::EvalNode;
+pub use crate::eval::{
+    DiceRoll,
+    EvalNode,
+};
 
 
 pub const TEST_SEED: u64 = 10353;
@@ -64,7 +67,7 @@ impl Expression {
                     Op::Number(x) => {
                         Ok(EvalNode::Number(*x))
                     }
-                    &Op::Dice { num, sides, ops } => {
+                    &Op::Dice { num, sides, ops: _ } => {
                         if sides == 0 {
                             Err(ExprError::ZeroSides)
                         } else {
@@ -83,14 +86,15 @@ impl Expression {
     }
 }
 
-fn compute_dice(num: i32, sides: i32, rng: &mut StdRng) -> ExprResult<Vec<i32>> {
+fn compute_dice(num: i32, sides: i32, rng: &mut StdRng) -> ExprResult<Vec<DiceRoll>> {
     if num == 0 {
         Ok(vec![])
     } else {
         let distr = Uniform::new_inclusive(1, sides);
-        Ok(distr.sample_iter(rng)
+        Ok(DiceRoll::build(distr
+            .sample_iter(rng)
             .take(num as usize)
             .collect()
-        )
+        ))
     }
 }

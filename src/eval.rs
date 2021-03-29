@@ -15,9 +15,16 @@ pub enum EvalNode {
     UnaryOp { op: Op, inner: Box<EvalNode> },
     Parens { inner: Box<EvalNode> },
     Number(i32),
-    Dice { num: i32, sides: i32, rolls: Vec<i32> },
+    Dice { num: i32, sides: i32, rolls: Vec<DiceRoll> },
     Set(Vec<EvalNode>)
 }
+
+#[derive(Debug, Eq, PartialEq)]
+pub struct DiceRoll {
+    value: i32,
+    kept: bool,
+}
+
 
 impl EvalNode {
     #[allow(non_snake_case)]
@@ -88,7 +95,10 @@ impl EvalNode {
                 Ok(*x)
             }
             EvalNode::Dice { num: _, sides: _, rolls } => {
-                Ok(rolls.iter().sum())
+                Ok(rolls
+                    .iter()
+                    .map(|r| if r.kept { r.value } else { 0 })
+                    .sum())
             }
             EvalNode::Set(items) => {
                 Ok(items
@@ -143,5 +153,18 @@ impl EvalNode {
                 }
             }
         }
+    }
+}
+
+impl DiceRoll {
+    pub fn new(value: i32, kept: bool) -> Self {
+        DiceRoll { value, kept }
+    }
+
+    pub fn build(rolls: Vec<i32>) -> Vec<Self> {
+        rolls
+            .into_iter()
+            .map(|value| DiceRoll { value, kept: true })
+            .collect()
     }
 }
