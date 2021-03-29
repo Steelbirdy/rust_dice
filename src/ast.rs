@@ -29,8 +29,8 @@ pub enum Op {
 
 #[derive(Copy, Clone, Debug, Eq, PartialEq)]
 pub struct SetOps {
-    keep: Option<SetSelector>,
-    drop: Option<SetSelector>,
+    pub keep: Option<SetSelector>,
+    pub drop: Option<SetSelector>,
 }
 
 #[derive(Copy, Clone, Debug, Eq, PartialEq)]

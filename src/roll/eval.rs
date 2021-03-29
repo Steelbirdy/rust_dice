@@ -55,8 +55,8 @@ impl EvalNode {
     pub fn value(&self) -> EvalResult<i32> {
         match self {
             EvalNode::BinaryOp { op, left, right } => {
-                let l = left.value().unwrap();
-                let r = right.value().unwrap();
+                let l = left.value()?;
+                let r = right.value()?;
 
                 match op {
                     Op::Add => {
@@ -79,10 +79,10 @@ impl EvalNode {
                 }
             }
             EvalNode::Parens { inner } => {
-                Ok(inner.value().unwrap())
+                Ok(inner.value()?)
             }
             EvalNode::UnaryOp { op, inner } => {
-                let inner = inner.value().unwrap();
+                let inner = inner.value()?;
 
                 match op {
                     Op::Neg => {

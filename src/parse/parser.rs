@@ -108,16 +108,16 @@ impl DiceParser {
     }
 
     fn set_operation(input: Node) -> ParseResult<(String, SetSelector)> {
-        let sel = input.children().single().unwrap();
-        let sel: SetSelector = DiceParser::set_selector(sel).unwrap();
+        let sel = input.children().single()?;
+        let sel: SetSelector = DiceParser::set_selector(sel)?;
 
         let id: String = input.to_string()[0..1].to_string();
         Ok((id, sel))
     }
 
     fn set_selector(input: Node) -> ParseResult<SetSelector> {
-        let n = input.children().single().unwrap();
-        let n = DiceParser::number(n).unwrap();
+        let n = input.children().single()?;
+        let n = DiceParser::number(n)?;
 
         Ok(match &input.as_str()[0..1] {
             "h" => SetSelector::Highest(n),

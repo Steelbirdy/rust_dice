@@ -10,7 +10,7 @@ use crate::ast::{
     Node,
     Op
 };
-pub use crate::eval::{
+pub use super::{
     DiceRoll,
     EvalNode,
 };
@@ -57,12 +57,12 @@ impl Expression {
             Node::Node(head) => {
                 match &head.op {
                     Op::Parens => {
-                        let inner = Self::eval_recursive(head.left.as_ref().unwrap(), &mut rng);
-                        Ok(EvalNode::Parens { inner: Box::new(inner.unwrap()) })
+                        let inner = Self::eval_recursive(head.left.as_ref()?, &mut rng);
+                        Ok(EvalNode::Parens { inner: Box::new(inner?) })
                     }
                     Op::Neg => {
-                        let inner = Self::eval_recursive(head.right.as_ref().unwrap(), &mut rng);
-                        Ok(EvalNode::UnaryOp { op: Op::Neg, inner: Box::new(inner.unwrap()) })
+                        let inner = Self::eval_recursive(head.right.as_ref()?, &mut rng);
+                        Ok(EvalNode::UnaryOp { op: Op::Neg, inner: Box::new(inner?) })
                     }
                     Op::Number(x) => {
                         Ok(EvalNode::Number(*x))
@@ -72,13 +72,13 @@ impl Expression {
                             Err(ExprError::ZeroSides)
                         } else {
                             let rolls = compute_dice(num, sides, &mut rng);
-                            Ok(EvalNode::Dice { num, sides, rolls: rolls.unwrap() })
+                            Ok(EvalNode::Dice { num, sides, rolls: rolls? })
                         }
                     }
                     _ => {
-                        let left = Self::eval_recursive(head.left.as_ref().unwrap(), &mut rng);
-                        let right = Self::eval_recursive(head.right.as_ref().unwrap(), &mut rng);
-                        Ok(EvalNode::BinaryOp { op: head.op, left: Box::new(left.unwrap()), right: Box::new(right.unwrap()) })
+                        let left = Self::eval_recursive(head.left.as_ref()?, &mut rng);
+                        let right = Self::eval_recursive(head.right.as_ref()?, &mut rng);
+                        Ok(EvalNode::BinaryOp { op: head.op, left: Box::new(left?), right: Box::new(right?) })
                     }
                 }
             }

@@ -1,12 +1,11 @@
 mod ast;
-mod eval;
-mod expr;
 mod parse;
+mod roll;
 
 
 #[cfg(test)]
 mod test_ast {
-    use super::ast::{
+    use crate::ast::{
         Child,
         InnerNode,
         Node,
@@ -51,11 +50,11 @@ mod test_ast {
 
 #[cfg(test)]
 mod test_expr {
-    use super::ast::{
+    use crate::ast::{
         Node,
         SetOps,
     };
-    use super::expr::{
+    use crate::roll::{
         TEST_SEED,
         EvalNode,
         ExprResult,
@@ -168,12 +167,12 @@ mod test_expr {
 
 #[cfg(test)]
 mod test_parse {
-    use super::ast::{
+    use crate::ast::{
         Node,
         SetOps,
     };
 
-    use super::parse::{
+    use crate::parse::{
         ParseResult,
     };
 
@@ -361,7 +360,7 @@ mod test_parse {
 
 #[cfg(test)]
 mod test_eval {
-    use super::eval::{
+    use crate::roll::{
         DiceRoll,
         EvalError,
         EvalNode,
@@ -462,8 +461,8 @@ mod test_eval {
 
 #[cfg(test)]
 mod test_pipeline {
-    use super::{
-        expr::{
+    use crate::{
+        roll::{
             Expression,
             TEST_SEED,
         },

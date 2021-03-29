@@ -1,9 +1,10 @@
 use rand::prelude::*;
 
 pub mod ast;
-pub mod eval;
-pub mod expr;
 pub mod parse;
+pub mod roll;
+
+use roll::expr;
 
 
 fn roll(dice: &[(i32, i32)]) {
