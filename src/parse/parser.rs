@@ -8,7 +8,11 @@ use pest_consume::{
     Parser,
 };
 use crate::ast::{
+    InnerNode,
     Node as ASTNode,
+    Op,
+    SetOps,
+    SetSelector,
 };
 
 pub type ParseResult<T> = Result<T, Error<Rule>>;
@@ -56,18 +60,70 @@ impl DiceParser {
             .map_err(|e| input.error(e))
     }
 
+    fn dice_expr(input: Node) -> ParseResult<ASTNode> {
+        Ok(match_nodes!(input.into_children();
+            [dice(x), set_operation(ops)..] => {
+                match x {
+                    ASTNode::Node(InnerNode { op: Op::Dice { num, sides, ops: _ }, left: None, right: None }) => {
+                        ASTNode::Dice(num, sides, Some(SetOps::build(ops.collect())))
+                    }
+                    _ => unreachable!(),
+                }
+            },
+            [dice(x)] => x,
+        ))
+    }
+
     fn dice(input: Node) -> ParseResult<ASTNode> {
         Ok(match_nodes!(input.into_children();
-            [number(num), number(sides)] => ASTNode::Dice(num, sides),
-            [number(sides)] => ASTNode::Dice(1, sides),
+            [number(num), number(sides)] => ASTNode::Dice(num, sides, None),
+            [number(sides)] => ASTNode::Dice(1, sides, None),
+        ))
+    }
+
+    fn set_expr(input: Node) -> ParseResult<ASTNode> {
+        Ok(match_nodes!(input.into_children();
+            [set(x), set_operation(ops)..] => {
+                match x {
+                    ASTNode::Set { set, ops: _ } => {
+                        ASTNode::Set { set, ops: SetOps::build(ops.collect()) }
+                    }
+                    _ => unreachable!(),
+                }
+            },
+            [set(x)] => x,
         ))
     }
 
     fn set(input: Node) -> ParseResult<ASTNode> {
         Ok(match_nodes!(input.into_children();
-            [] => ASTNode::Set(vec![]),
-            [expr(items)..] => ASTNode::Set(items.map(|n| Box::new(n)).collect::<Vec<Box<ASTNode>>>()),
+            [] => ASTNode::Set { set: vec![], ops: SetOps::default() },
+            [expr(items)..] => {
+                ASTNode::Set { set: items
+                    .map(|n| Box::new(n))
+                    .collect::<Vec<Box<ASTNode>>>(),
+                               ops: SetOps::default()
+               }},
         ))
+    }
+
+    fn set_operation(input: Node) -> ParseResult<(String, SetSelector)> {
+        let sel = input.children().single().unwrap();
+        let sel: SetSelector = DiceParser::set_selector(sel).unwrap();
+
+        let id: String = input.to_string()[0..1].to_string();
+        Ok((id, sel))
+    }
+
+    fn set_selector(input: Node) -> ParseResult<SetSelector> {
+        let n = input.children().single().unwrap();
+        let n = DiceParser::number(n).unwrap();
+
+        Ok(match &input.as_str()[0..1] {
+            "h" => SetSelector::Highest(n),
+            "l" => SetSelector::Lowest(n),
+            _ => SetSelector::Literal(n),
+        })
     }
 
     #[prec_climb(unary_term, BINARY_PREC_CLIMBER)]
@@ -93,9 +149,9 @@ impl DiceParser {
     fn term(input: Node) -> ParseResult<ASTNode> {
         Ok(match_nodes!(input.into_children();
             [number(x)] => ASTNode::Number(x),
-            [dice(x)] => x,
+            [dice_expr(x)] => x,
             [parens(x)] => x,
-            [set(x)] => x,
+            [set_expr(x)] => x,
         ))
     }
 

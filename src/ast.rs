@@ -1,12 +1,10 @@
-use std::borrow::Borrow;
-
 pub type Child = Option<Box<Node>>;
 
 
 #[derive(Debug, Eq, PartialEq)]
 pub enum Node {
     Node(InnerNode),
-    Set(Vec<Box<Node>>),
+    Set { set: Vec<Box<Node>>, ops: SetOps },
 }
 
 
@@ -26,32 +24,48 @@ pub enum Op {
     Neg,
     Parens,
     Number(i32),
-    Dice { num: i32, sides: i32 },
+    Dice { num: i32, sides: i32, ops: SetOps },
+}
+
+#[derive(Copy, Clone, Debug, Eq, PartialEq)]
+pub struct SetOps {
+    keep: Option<SetSelector>,
+    drop: Option<SetSelector>,
+}
+
+#[derive(Copy, Clone, Debug, Eq, PartialEq)]
+pub enum SetSelector {
+    Literal(i32),
+    Highest(i32),
+    Lowest(i32),
 }
 
 
 impl Node {
     fn new(op: Op, left: Option<Node>, right: Option<Node>) -> Self {
-        Node::Node(InnerNode::new(op, left, right))
+        let left = if let Some(inner) = left { Some(Box::new(inner)) } else { None };
+        let right = if let Some(inner) = right { Some(Box::new(inner)) } else { None };
+
+        Node::Node(InnerNode { op, left, right })
     }
 
     #[allow(non_snake_case)]
-    pub fn Add(left: Node, right: Node) -> Node {
+    pub fn Add(left: Node, right: Node) -> Self {
         Node::new(Op::Add, Some(left), Some(right))
     }
 
     #[allow(non_snake_case)]
-    pub fn Sub(left: Node, right: Node) -> Node {
+    pub fn Sub(left: Node, right: Node) -> Self {
         Node::new(Op::Sub, Some(left), Some(right))
     }
 
     #[allow(non_snake_case)]
-    pub fn Mul(left: Node, right: Node) -> Node {
+    pub fn Mul(left: Node, right: Node) -> Self {
         Node::new(Op::Mul, Some(left), Some(right))
     }
 
     #[allow(non_snake_case)]
-    pub fn Div(left: Node, right: Node) -> Node {
+    pub fn Div(left: Node, right: Node) -> Self {
         Node::new(Op::Div, Some(left), Some(right))
     }
 
@@ -62,66 +76,50 @@ impl Node {
         } else {
             Node::new(Op::Neg, None, Some(inner))
         }
-
     }
 
     #[allow(non_snake_case)]
-    pub fn Parens(inner: Node) -> Node {
+    pub fn Parens(inner: Node) -> Self {
         Node::new(Op::Parens, Some(inner), None)
     }
 
     #[allow(non_snake_case)]
-    pub fn Number(value: i32) -> Node {
+    pub fn Number(value: i32) -> Self {
         Node::new(Op::Number(value), None, None)
     }
 
     #[allow(non_snake_case)]
-    pub fn Dice(num: i32, sides: i32) -> Node {
-        Node::new(Op::Dice { num, sides }, None, None)
+    pub fn Dice(num: i32, sides: i32, ops: Option<SetOps>) -> Self {
+        let ops = ops.unwrap_or(SetOps::default());
+        Node::new(Op::Dice { num, sides, ops }, None, None)
     }
 }
 
 
-impl InnerNode {
-    fn new(op: Op, left: Option<Node>, right: Option<Node>) -> Self {
-        let left = if let Some(inner) = left { Some(Box::new(inner)) } else { None };
-        let right = if let Some(inner) = right { Some(Box::new(inner)) } else { None };
-
-        InnerNode { op, left, right }
+impl Default for SetOps {
+    fn default() -> Self {
+        SetOps { keep: None, drop: None }
     }
+}
 
-    #[allow(non_snake_case)]
-    pub fn Add(left: Node, right: Node) -> InnerNode {
-        InnerNode::new(Op::Add, Some(left), Some(right))
-    }
+impl SetOps {
+    pub fn build(items: Vec<(String, SetSelector)>) -> Self {
+        let mut ops = SetOps::default();
 
-    #[allow(non_snake_case)]
-    pub fn Sub(left: Node, right: Node) -> InnerNode {
-        InnerNode::new(Op::Sub, Some(left), Some(right))
-    }
+        for (chr, sel) in items {
+            let chr = chr.as_str();
+            match chr {
+                "k" => {
+                    ops.keep = Some(sel);
+                }
+                "l" => {
+                    ops.drop = Some(sel);
+                }
+                _ => panic!("Invalid set operator `{}`", chr)
+            }
+        }
 
-    #[allow(non_snake_case)]
-    pub fn Mul(left: Node, right: Node) -> InnerNode {
-        InnerNode::new(Op::Mul, Some(left), Some(right))
-    }
-
-    #[allow(non_snake_case)]
-    pub fn Div(left: Node, right: Node) -> InnerNode {
-        InnerNode::new(Op::Div, Some(left), Some(right))
-    }
-
-    #[allow(non_snake_case)]
-    pub fn Parens(inner: Node) -> InnerNode {
-        InnerNode::new(Op::Parens, Some(inner), None)
-    }
-
-    #[allow(non_snake_case)]
-    pub fn Number(value: i32) -> InnerNode {
-        InnerNode::new(Op::Number(value), None, None)
-    }
-
-    #[allow(non_snake_case)]
-    pub fn Dice(num: i32, sides: i32) -> InnerNode {
-        InnerNode::new(Op::Dice { num, sides }, None, None)
+        let ops = ops;
+        ops
     }
 }
