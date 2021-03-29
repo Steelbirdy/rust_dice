@@ -1,5 +1,3 @@
-use std::borrow::Borrow;
-
 pub type Child = Option<Box<Node>>;
 
 
@@ -39,22 +37,22 @@ impl Node {
     }
 
     #[allow(non_snake_case)]
-    pub fn Add(left: Node, right: Node) -> Node {
+    pub fn Add(left: Node, right: Node) -> Self {
         Node::new(Op::Add, Some(left), Some(right))
     }
 
     #[allow(non_snake_case)]
-    pub fn Sub(left: Node, right: Node) -> Node {
+    pub fn Sub(left: Node, right: Node) -> Self {
         Node::new(Op::Sub, Some(left), Some(right))
     }
 
     #[allow(non_snake_case)]
-    pub fn Mul(left: Node, right: Node) -> Node {
+    pub fn Mul(left: Node, right: Node) -> Self {
         Node::new(Op::Mul, Some(left), Some(right))
     }
 
     #[allow(non_snake_case)]
-    pub fn Div(left: Node, right: Node) -> Node {
+    pub fn Div(left: Node, right: Node) -> Self {
         Node::new(Op::Div, Some(left), Some(right))
     }
 
@@ -68,17 +66,17 @@ impl Node {
     }
 
     #[allow(non_snake_case)]
-    pub fn Parens(inner: Node) -> Node {
+    pub fn Parens(inner: Node) -> Self {
         Node::new(Op::Parens, Some(inner), None)
     }
 
     #[allow(non_snake_case)]
-    pub fn Number(value: i32) -> Node {
+    pub fn Number(value: i32) -> Self {
         Node::new(Op::Number(value), None, None)
     }
 
     #[allow(non_snake_case)]
-    pub fn Dice(num: i32, sides: i32) -> Node {
+    pub fn Dice(num: i32, sides: i32) -> Self {
         Node::new(Op::Dice { num, sides }, None, None)
     }
 }
