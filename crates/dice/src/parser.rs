@@ -1,6 +1,7 @@
 use crate::lexer::SyntaxKind;
+use crate::syntax::DiceLanguage;
 use logos::Logos;
-use rowan::{GreenNodeBuilder, GreenNode};
+use rowan::{GreenNodeBuilder, GreenNode, Language};
 
 
 pub(crate) struct Parser<'a> {
@@ -17,16 +18,42 @@ impl<'a> Parser<'a> {
     }
 
     pub(crate) fn parse(mut self) -> Parse {
-        self.builder.start_node(SyntaxKind::Root.into());
-        self.builder.finish_node();
+        self.start_node(SyntaxKind::Root);
+        self.finish_node();
 
         Parse {
             green_node: self.builder.finish(),
         }
+    }
+
+    fn start_node(&mut self, kind: SyntaxKind) {
+        self.builder.start_node(DiceLanguage::kind_to_raw(kind));
+    }
+
+    fn finish_node(&mut self) {
+        self.builder.finish_node();
     }
 }
 
 
 pub(crate) struct Parse {
     green_node: GreenNode,
+}
+
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::syntax::SyntaxNode;
+
+    #[test]
+    fn parse_nothing() {
+        let parse = Parser::new("").parse();
+
+        assert_eq!(
+            format!("{:#?}", SyntaxNode::new_root(parse.green_node)),
+            r#"Root@0..0
+"#
+        )
+    }
 }

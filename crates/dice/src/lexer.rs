@@ -1,6 +1,8 @@
 use logos::Logos;
+use num_derive::{FromPrimitive, ToPrimitive};
 
-#[derive(Debug, Copy, Clone, PartialEq, Logos)]
+
+#[derive(Debug, Copy, Clone, PartialEq, Logos, FromPrimitive, ToPrimitive)]
 pub(crate) enum SyntaxKind {
     #[regex(" +")]
     Whitespace,
@@ -75,12 +77,6 @@ pub(crate) enum SyntaxKind {
     Error,
 
     Root,
-}
-
-impl From<SyntaxKind> for rowan::SyntaxKind {
-    fn from(kind: SyntaxKind) -> Self {
-        Self(kind as u16)
-    }
 }
 
 
