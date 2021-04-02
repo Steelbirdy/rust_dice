@@ -1,5 +1,5 @@
 use crate::lexer::SyntaxKind;
-use crate::syntax::DiceLanguage;
+use crate::syntax::{DiceLanguage, SyntaxNode};
 use logos::Logos;
 use rowan::{GreenNodeBuilder, GreenNode, Language};
 
@@ -40,6 +40,16 @@ pub(crate) struct Parse {
     green_node: GreenNode,
 }
 
+impl Parse {
+    pub fn debug_tree(&self) -> String {
+        let syntax_node = SyntaxNode::new_root(self.green_node.clone());
+        let formatted = format!("{:#?}", syntax_node);
+
+        // We cut off the last byte because formatting the SyntaxNode adds on a newline at the end.
+        formatted[0..formatted.len() - 1].to_string()
+    }
+}
+
 
 #[cfg(test)]
 mod tests {
@@ -49,12 +59,7 @@ mod tests {
 
     fn check(input: &str, expected_tree: Expect) {
         let parse = Parser::new(input).parse();
-        let syntax_node = SyntaxNode::new_root(parse.green_node);
-
-        let actual_tree = format!("{:#?}", syntax_node);
-
-        // We cut off the last byte because formatting the SyntaxNode adds on a newline at the end.
-        expected_tree.assert_eq(&actual_tree[0..actual_tree.len() - 1]);
+        expected_tree.assert_eq(&parse.debug_tree());
     }
 
     #[test]
