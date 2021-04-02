@@ -73,7 +73,16 @@ pub(crate) enum SyntaxKind {
 
     #[error]
     Error,
+
+    Root,
 }
+
+impl From<SyntaxKind> for rowan::SyntaxKind {
+    fn from(kind: SyntaxKind) -> Self {
+        Self(kind as u16)
+    }
+}
+
 
 #[cfg(test)]
 mod tests {
