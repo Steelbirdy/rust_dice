@@ -3,7 +3,7 @@ mod expr;
 use crate::lexer::{Lexer, SyntaxKind};
 use crate::syntax::{DiceLanguage, SyntaxNode};
 use expr::expr;
-use rowan::{GreenNodeBuilder, GreenNode, Language};
+use rowan::{Checkpoint, GreenNodeBuilder, GreenNode, Language};
 use std::iter::Peekable;
 
 
@@ -45,6 +45,15 @@ impl<'a> Parser<'a> {
 
     fn start_node(&mut self, kind: SyntaxKind) {
         self.builder.start_node(DiceLanguage::kind_to_raw(kind));
+    }
+
+    fn start_node_at(&mut self, checkpoint: Checkpoint, kind: SyntaxKind) {
+        self.builder
+            .start_node_at(checkpoint, DiceLanguage::kind_to_raw(kind));
+    }
+
+    fn checkpoint(&self) -> Checkpoint {
+        self.builder.checkpoint()
     }
 
     fn finish_node(&mut self) {

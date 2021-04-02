@@ -25,6 +25,8 @@ pub(super) fn expr(p: &mut Parser) {
 }
 
 fn expr_binding_power(p: &mut Parser, minimum_binding_power: u8) {
+    let checkpoint = p.checkpoint();
+
     match p.peek() {
         Some(SyntaxKind::Number) => p.bump(),
         _ => {}
@@ -47,7 +49,9 @@ fn expr_binding_power(p: &mut Parser, minimum_binding_power: u8) {
     // Eat the operator's token.
     p.bump();
 
+    p.start_node_at(checkpoint, SyntaxKind::BinOp);
     expr_binding_power(p, right_binding_power);
+    p.finish_node();
 }
 
 
