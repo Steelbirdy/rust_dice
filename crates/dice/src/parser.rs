@@ -45,15 +45,20 @@ pub(crate) struct Parse {
 mod tests {
     use super::*;
     use crate::syntax::SyntaxNode;
+    use expect_test::{expect, Expect};
+
+    fn check(input: &str, expected_tree: Expect) {
+        let parse = Parser::new(input).parse();
+        let syntax_node = SyntaxNode::new_root(parse.green_node);
+
+        let actual_tree = format!("{:#?}", syntax_node);
+
+        // We cut off the last byte because formatting the SyntaxNode adds on a newline at the end.
+        expected_tree.assert_eq(&actual_tree[0..actual_tree.len() - 1]);
+    }
 
     #[test]
     fn parse_nothing() {
-        let parse = Parser::new("").parse();
-
-        assert_eq!(
-            format!("{:#?}", SyntaxNode::new_root(parse.green_node)),
-            r#"Root@0..0
-"#
-        )
+        check("", expect![[r#"Root@0..0"#]]);
     }
 }

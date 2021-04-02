@@ -11,3 +11,6 @@ logos = "0.12.0"
 num-derive = "0.3.3"
 num-traits = "0.2.14"
 rowan = "0.12.6"
+
+[dev-dependencies]
+expect-test = "1.1.0"
