@@ -112,6 +112,12 @@ pub(crate) enum SyntaxKind {
     PrefixExpr,
 }
 
+impl SyntaxKind {
+    pub(crate) fn is_trivia(self) -> bool {
+        matches!(self, Self::Whitespace)
+    }
+}
+
 
 #[cfg(test)]
 mod tests {
