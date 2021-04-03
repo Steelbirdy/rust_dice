@@ -4,7 +4,7 @@ use std::fmt;
 
 #[derive(Debug, Copy, Clone, PartialEq, Logos)]
 pub enum TokenKind {
-    #[regex(" +")]
+    #[regex("[ \n]+")]
     Whitespace,
 
     #[regex("[0-9]*d(%|[1-9][0-9]*)")]
@@ -151,6 +151,11 @@ mod tests {
     #[test]
     fn lex_spaces() {
         check("  ", TokenKind::Whitespace);
+    }
+
+    #[test]
+    fn lex_newline() {
+        check("\n ", TokenKind::Whitespace);
     }
 
     #[test]
