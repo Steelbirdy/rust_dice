@@ -66,7 +66,7 @@ fn expr_binding_power(p: &mut Parser, minimum_binding_power: u8) -> Option<Compl
 
 fn lhs(p: &mut Parser) -> Option<CompletedMarker> {
     let cm = match p.peek() {
-        Some(SyntaxKind::Number) => literal(p),
+        Some(SyntaxKind::Dice) | Some(SyntaxKind::Number) => literal(p),
         Some(SyntaxKind::Minus) => prefix_expr(p),
         Some(SyntaxKind::LParen) => paren_expr(p),
         _ => return None,
@@ -77,7 +77,7 @@ fn lhs(p: &mut Parser) -> Option<CompletedMarker> {
 
 
 fn literal(p: &mut Parser) -> CompletedMarker {
-    assert!(p.at(SyntaxKind::Number));
+    assert!(p.at(SyntaxKind::Dice) || p.at(SyntaxKind::Number));
 
     let m = p.start();
     p.bump();
@@ -332,6 +332,58 @@ Root@0..12
       Literal@10..12
         Number@10..11 "3"
         Whitespace@11..12 " ""#]],
+        );
+    }
+
+    #[test]
+    fn parse_dice() {
+        check(
+            "1d20",
+            expect![[r#"
+Root@0..4
+  Literal@0..4
+    Dice@0..4 "1d20""#]],
+        );
+    }
+
+    #[test]
+    fn parse_dice_in_infix_expression() {
+        check(
+            "2 * 3d4 - 1",
+            expect![[r#"
+Root@0..11
+  InfixExpr@0..11
+    InfixExpr@0..8
+      Literal@0..2
+        Number@0..1 "2"
+        Whitespace@1..2 " "
+      Star@2..3 "*"
+      Whitespace@3..4 " "
+      Literal@4..8
+        Dice@4..7 "3d4"
+        Whitespace@7..8 " "
+    Minus@8..9 "-"
+    Whitespace@9..10 " "
+    Literal@10..11
+      Number@10..11 "1""#]],
+        );
+    }
+
+    #[test]
+    fn parse_dice_with_implicit_count_1() {
+        check(
+            " d4 - 2",
+            expect![[r#"
+Root@0..7
+  Whitespace@0..1 " "
+  InfixExpr@1..7
+    Literal@1..4
+      Dice@1..3 "d4"
+      Whitespace@3..4 " "
+    Minus@4..5 "-"
+    Whitespace@5..6 " "
+    Literal@6..7
+      Number@6..7 "2""#]],
         );
     }
 }

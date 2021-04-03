@@ -29,6 +29,7 @@ pub enum SyntaxKind {
     Greater,
     Less,
     Error,
+
     Root,
     InfixExpr,
     Literal,

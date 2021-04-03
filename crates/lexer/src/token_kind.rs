@@ -6,7 +6,7 @@ pub enum TokenKind {
     #[regex(" +")]
     Whitespace,
 
-    #[token("d")]
+    #[regex("[0-9]*d[1-9][0-9]*")]
     Dice,
 
     #[regex("[0-9]+")]
@@ -94,7 +94,7 @@ mod tests {
 
     #[test]
     fn lex_dice() {
-        check("d", TokenKind::Dice);
+        check("8d6", TokenKind::Dice);
     }
 
     #[test]
