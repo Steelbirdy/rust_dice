@@ -1,7 +1,5 @@
 pub mod parser;
 
-mod syntax;
-
 
 #[cfg(test)]
 mod tests {

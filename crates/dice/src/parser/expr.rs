@@ -1,6 +1,6 @@
 use super::Parser;
 use super::marker::CompletedMarker;
-use crate::syntax::SyntaxKind;
+use syntax::SyntaxKind;
 
 
 enum BinaryOp {

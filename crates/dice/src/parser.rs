@@ -9,7 +9,7 @@ use expr::expr;
 use marker::Marker;
 use sink::Sink;
 use source::Source;
-use crate::syntax::{SyntaxNode, SyntaxKind};
+use syntax::{SyntaxNode, SyntaxKind};
 use lexer::{Token, Lexer};
 use rowan::GreenNode;
 

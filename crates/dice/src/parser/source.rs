@@ -1,4 +1,4 @@
-use crate::syntax::SyntaxKind;
+use syntax::SyntaxKind;
 use lexer::Token;
 
 
