@@ -35,6 +35,7 @@ pub enum SyntaxKind {
     Literal,
     ParenExpr,
     PrefixExpr,
+    SetExpr,
 }
 
 impl SyntaxKind {

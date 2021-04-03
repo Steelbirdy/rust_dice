@@ -68,7 +68,7 @@ fn lhs(p: &mut Parser) -> Option<CompletedMarker> {
     let cm = match p.peek() {
         Some(SyntaxKind::Dice) | Some(SyntaxKind::Number) => literal(p),
         Some(SyntaxKind::Minus) => prefix_expr(p),
-        Some(SyntaxKind::LParen) => paren_expr(p),
+        Some(SyntaxKind::LParen) => paren_or_set_expr(p),
         _ => return None,
     };
 
@@ -100,18 +100,41 @@ fn prefix_expr(p: &mut Parser) -> CompletedMarker {
     m.complete(p, SyntaxKind::PrefixExpr)
 }
 
-fn paren_expr(p: &mut Parser) -> CompletedMarker {
+fn paren_or_set_expr(p: &mut Parser) -> CompletedMarker {
     assert!(p.at(SyntaxKind::LParen));
 
     let m = p.start();
-
     p.bump();
-    expr_binding_power(p, 0);
+
+    let kind = if p.at(SyntaxKind::RParen) {
+        SyntaxKind::SetExpr
+    } else {
+        expr_binding_power(p, 0);
+
+        match p.peek() {
+            Some(SyntaxKind::Comma) => {
+                set_expr(p);
+                SyntaxKind::SetExpr
+            }
+            _ => SyntaxKind::ParenExpr,
+        }
+    };
 
     assert!(p.at(SyntaxKind::RParen));
     p.bump();
 
-    m.complete(p, SyntaxKind::ParenExpr)
+    m.complete(p, kind)
+}
+
+fn set_expr(p: &mut Parser) {
+    while p.at(SyntaxKind::Comma) {
+        p.bump();
+        if p.at(SyntaxKind::RParen) {
+            break;
+        } else {
+            expr_binding_power(p, 0);
+        }
+    }
 }
 
 
@@ -384,6 +407,73 @@ Root@0..7
     Whitespace@5..6 " "
     Literal@6..7
       Number@6..7 "2""#]],
+        );
+    }
+
+    #[test]
+    fn parse_set_expr() {
+        check(
+            "(1,2,3)",
+            expect![[r#"
+Root@0..7
+  SetExpr@0..7
+    LParen@0..1 "("
+    Literal@1..2
+      Number@1..2 "1"
+    Comma@2..3 ","
+    Literal@3..4
+      Number@3..4 "2"
+    Comma@4..5 ","
+    Literal@5..6
+      Number@5..6 "3"
+    RParen@6..7 ")""#]],
+        );
+    }
+
+    #[test]
+    fn parse_empty_set() {
+        check(
+            "()",
+            expect![[r#"
+Root@0..2
+  SetExpr@0..2
+    LParen@0..1 "("
+    RParen@1..2 ")""#]],
+        );
+    }
+
+    #[test]
+    fn parse_set_with_trailing_comma() {
+        check(
+            "(1, 2d4, )",
+            expect![[r#"
+Root@0..10
+  SetExpr@0..10
+    LParen@0..1 "("
+    Literal@1..2
+      Number@1..2 "1"
+    Comma@2..3 ","
+    Whitespace@3..4 " "
+    Literal@4..7
+      Dice@4..7 "2d4"
+    Comma@7..8 ","
+    Whitespace@8..9 " "
+    RParen@9..10 ")""#]],
+        );
+    }
+
+    #[test]
+    fn parse_singleton_set() {
+        check(
+            "(1d20,)",
+            expect![[r#"
+Root@0..7
+  SetExpr@0..7
+    LParen@0..1 "("
+    Literal@1..5
+      Dice@1..5 "1d20"
+    Comma@5..6 ","
+    RParen@6..7 ")""#]],
         );
     }
 }
