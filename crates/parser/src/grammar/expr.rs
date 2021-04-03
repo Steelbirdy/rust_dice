@@ -61,8 +61,12 @@ fn expr_binding_power(p: &mut Parser, minimum_binding_power: u8) -> Option<Compl
         p.bump();
 
         let m = lhs.precede(p);
-        expr_binding_power(p, right_binding_power);
+        let parsed_rhs = expr_binding_power(p, right_binding_power).is_some();
         lhs = m.complete(p, SyntaxKind::InfixExpr);
+
+        if !parsed_rhs {
+            break;
+        }
     };
 
     Some(lhs)
@@ -686,6 +690,23 @@ error at 1..4: expected 'k', 'p', 'rr', 'ro', 'ra', 'e', 'mi', 'ma', '+', '-', '
 Root@0..3
   DiceExpr@0..3
     Dice@0..3 "1d%""#]],
+        );
+    }
+
+    #[test]
+    fn do_not_parse_operator_if_getting_rhs_failed() {
+        check(
+            "(1+",
+            expect![[r#"
+Root@0..3
+  ParenExpr@0..3
+    LParen@0..1 "("
+    InfixExpr@1..3
+      Literal@1..2
+        Number@1..2 "1"
+      Plus@2..3 "+"
+error at 2..3: expected number, dice, '-', or '('
+error at 2..3: expected ',' or ')'"#]],
         );
     }
 }
