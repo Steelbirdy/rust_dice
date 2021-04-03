@@ -66,7 +66,8 @@ fn expr_binding_power(p: &mut Parser, minimum_binding_power: u8) -> Option<Compl
 
 fn lhs(p: &mut Parser) -> Option<CompletedMarker> {
     let cm = match p.peek() {
-        Some(SyntaxKind::Dice) | Some(SyntaxKind::Number) => literal(p),
+        Some(SyntaxKind::Number) => literal(p),
+        Some(SyntaxKind::Dice) => dice_expr(p),
         Some(SyntaxKind::Minus) => prefix_expr(p),
         Some(SyntaxKind::LParen) => paren_or_set_expr(p),
         _ => return None,
@@ -77,11 +78,19 @@ fn lhs(p: &mut Parser) -> Option<CompletedMarker> {
 
 
 fn literal(p: &mut Parser) -> CompletedMarker {
-    assert!(p.at(SyntaxKind::Dice) || p.at(SyntaxKind::Number));
+    assert!(p.at(SyntaxKind::Number));
 
     let m = p.start();
     p.bump();
     m.complete(p, SyntaxKind::Literal)
+}
+
+fn dice_expr(p: &mut Parser) -> CompletedMarker {
+    assert!(p.at(SyntaxKind::Dice));
+
+    let m = p.start();
+    p.bump();
+    m.complete(p, SyntaxKind::DiceExpr)
 }
 
 fn prefix_expr(p: &mut Parser) -> CompletedMarker {
@@ -364,7 +373,7 @@ Root@0..12
             "1d20",
             expect![[r#"
 Root@0..4
-  Literal@0..4
+  DiceExpr@0..4
     Dice@0..4 "1d20""#]],
         );
     }
@@ -382,7 +391,7 @@ Root@0..11
         Whitespace@1..2 " "
       Star@2..3 "*"
       Whitespace@3..4 " "
-      Literal@4..8
+      DiceExpr@4..8
         Dice@4..7 "3d4"
         Whitespace@7..8 " "
     Minus@8..9 "-"
@@ -400,7 +409,7 @@ Root@0..11
 Root@0..7
   Whitespace@0..1 " "
   InfixExpr@1..7
-    Literal@1..4
+    DiceExpr@1..4
       Dice@1..3 "d4"
       Whitespace@3..4 " "
     Minus@4..5 "-"
@@ -454,7 +463,7 @@ Root@0..10
       Number@1..2 "1"
     Comma@2..3 ","
     Whitespace@3..4 " "
-    Literal@4..7
+    DiceExpr@4..7
       Dice@4..7 "2d4"
     Comma@7..8 ","
     Whitespace@8..9 " "
@@ -470,7 +479,7 @@ Root@0..10
 Root@0..7
   SetExpr@0..7
     LParen@0..1 "("
-    Literal@1..5
+    DiceExpr@1..5
       Dice@1..5 "1d20"
     Comma@5..6 ","
     RParen@6..7 ")""#]],

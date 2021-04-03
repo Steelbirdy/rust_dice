@@ -31,6 +31,7 @@ pub enum SyntaxKind {
     Error,
 
     Root,
+    DiceExpr,
     InfixExpr,
     Literal,
     ParenExpr,
