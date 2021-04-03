@@ -17,6 +17,10 @@ fn main() -> io::Result<()> {
         let parse = parse(&input);
         println!("{}", parse.debug_tree());
 
+        let root = ast::Root::cast(parse.syntax()).unwrap();
+
+        dbg!(root.expr());
+
         input.clear();
     }
 }

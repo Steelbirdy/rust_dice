@@ -102,10 +102,14 @@ pub struct Root(SyntaxNode);
 
 impl Root {
     pub fn cast(node: SyntaxNode) -> Option<Self> {
-        if node.kind() == SyntaxNode::Root {
+        if node.kind() == SyntaxKind::Root {
             Some(Self(node))
         } else {
             None
         }
+    }
+
+    pub fn expr(&self) -> Option<Expr> {
+        self.0.children().find_map(Expr::cast)
     }
 }
