@@ -32,12 +32,12 @@ pub enum SyntaxKind {
 
     Root,
     DiceExpr,
-    DiceOp,
     InfixExpr,
     Literal,
     ParenExpr,
     PrefixExpr,
     SetExpr,
+    SetOp,
 }
 
 impl SyntaxKind {
@@ -45,7 +45,7 @@ impl SyntaxKind {
         matches!(self, Self::Whitespace)
     }
 
-    pub fn is_dice_operator(self) -> bool {
+    pub fn is_set_operator(self) -> bool {
         matches!(self,
             Self::Keep
             | Self::Drop
@@ -58,7 +58,7 @@ impl SyntaxKind {
         )
     }
 
-    pub fn is_dice_selector(self) -> bool {
+    pub fn is_set_selector(self) -> bool {
         matches!(self,
             Self::Number
             | Self::Highest

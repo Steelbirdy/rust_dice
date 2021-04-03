@@ -92,7 +92,7 @@ fn dice_expr(p: &mut Parser) -> CompletedMarker {
     let m = p.start();
     p.bump();
 
-    while p.matches(SyntaxKind::is_dice_operator) {
+    while p.matches(SyntaxKind::is_set_operator) {
         dice_op(p);
     }
 
@@ -100,18 +100,18 @@ fn dice_expr(p: &mut Parser) -> CompletedMarker {
 }
 
 fn dice_op(p: &mut Parser) -> CompletedMarker {
-    assert!(p.matches(SyntaxKind::is_dice_operator));
+    assert!(p.matches(SyntaxKind::is_set_operator));
 
     let m = p.start();
     p.bump();
 
-    assert!(p.matches(SyntaxKind::is_dice_selector));
+    assert!(p.matches(SyntaxKind::is_set_selector));
     if !p.at(SyntaxKind::Number) {
         p.bump();
     }
     literal(p);
 
-    m.complete(p, SyntaxKind::DiceOp)
+    m.complete(p, SyntaxKind::SetOp)
 }
 
 fn prefix_expr(p: &mut Parser) -> CompletedMarker {
@@ -516,7 +516,7 @@ Root@0..7
 Root@0..7
   DiceExpr@0..7
     Dice@0..4 "2d20"
-    DiceOp@4..7
+    SetOp@4..7
       Keep@4..5 "k"
       Highest@5..6 "h"
       Literal@6..7
@@ -532,11 +532,11 @@ Root@0..7
 Root@0..9
   DiceExpr@0..9
     Dice@0..3 "8d6"
-    DiceOp@3..6
+    SetOp@3..6
       Reroll@3..5 "rr"
       Literal@5..6
         Number@5..6 "1"
-    DiceOp@6..9
+    SetOp@6..9
       Explode@6..7 "e"
       Greater@7..8 ">"
       Literal@8..9
