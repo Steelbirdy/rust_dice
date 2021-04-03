@@ -676,4 +676,15 @@ Root@0..4
       Dice@1..4 "1d4""#]],
         );
     }
+
+    #[test]
+    fn parse_percentage_dice() {
+        check(
+            "1d%",
+            expect![[r#"
+Root@0..3
+  DiceExpr@0..3
+    Dice@0..3 "1d%""#]],
+        );
+    }
 }

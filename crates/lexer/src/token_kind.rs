@@ -6,7 +6,7 @@ pub enum TokenKind {
     #[regex(" +")]
     Whitespace,
 
-    #[regex("[0-9]*d[1-9][0-9]*")]
+    #[regex("[0-9]*d(%|[1-9][0-9]*)")]
     Dice,
 
     #[regex("[0-9]+")]
