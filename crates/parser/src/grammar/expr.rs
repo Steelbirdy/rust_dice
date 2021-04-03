@@ -513,6 +513,27 @@ Root@0..7
     }
 
     #[test]
+    fn parse_set_with_expression_element() {
+        check(
+            "(1d20+2,3)",
+            expect![[r#"
+Root@0..10
+  SetExpr@0..10
+    LParen@0..1 "("
+    InfixExpr@1..7
+      DiceExpr@1..5
+        Dice@1..5 "1d20"
+      Plus@5..6 "+"
+      Literal@6..7
+        Number@6..7 "2"
+    Comma@7..8 ","
+    Literal@8..9
+      Number@8..9 "3"
+    RParen@9..10 ")""#]],
+        );
+    }
+
+    #[test]
     fn parse_dice_with_single_set_operation() {
         check(
             "2d20kh1",
@@ -529,17 +550,41 @@ Root@0..7
     }
 
     #[test]
+    fn parse_nested_sets() {
+        check(
+            "(2d4,(11,1d6),)",
+            expect![[r#"
+Root@0..15
+  SetExpr@0..15
+    LParen@0..1 "("
+    DiceExpr@1..4
+      Dice@1..4 "2d4"
+    Comma@4..5 ","
+    SetExpr@5..13
+      LParen@5..6 "("
+      Literal@6..8
+        Number@6..8 "11"
+      Comma@8..9 ","
+      DiceExpr@9..12
+        Dice@9..12 "1d6"
+      RParen@12..13 ")"
+    Comma@13..14 ","
+    RParen@14..15 ")""#]],
+        );
+    }
+
+    #[test]
     fn parse_dice_with_multiple_set_operations() {
         check(
-            "8d6rr1e>5",
+            "8d6mi3e>5",
             expect![[r#"
 Root@0..9
   DiceExpr@0..9
     Dice@0..3 "8d6"
     SetOp@3..6
-      Reroll@3..5 "rr"
+      Min@3..5 "mi"
       Literal@5..6
-        Number@5..6 "1"
+        Number@5..6 "3"
     SetOp@6..9
       Explode@6..7 "e"
       Greater@7..8 ">"
@@ -551,7 +596,7 @@ Root@0..9
     #[test]
     fn parse_set_with_single_set_operation() {
         check(
-            "(1, 3d4ro<3 , 2d20kl1)p>5",
+            "(1, 3d4ro<3 , 2d20kl1)ra5",
             expect![[r#"
 Root@0..25
   SetExpr@0..25
@@ -579,8 +624,7 @@ Root@0..25
           Number@20..21 "1"
     RParen@21..22 ")"
     SetOp@22..25
-      Drop@22..23 "p"
-      Greater@23..24 ">"
+      RerollAdd@22..24 "ra"
       Literal@24..25
         Number@24..25 "5""#]]
         )
@@ -589,7 +633,7 @@ Root@0..25
     #[test]
     fn parse_set_with_multiple_set_operations() {
         check(
-            "(1d4,1d6,1d8)p8kh1",
+            "(1d4,1d6,1d8)p8ma6",
             expect![[r#"
 Root@0..18
   SetExpr@0..18
@@ -608,10 +652,9 @@ Root@0..18
       Literal@14..15
         Number@14..15 "8"
     SetOp@15..18
-      Keep@15..16 "k"
-      Highest@16..17 "h"
+      Max@15..17 "ma"
       Literal@17..18
-        Number@17..18 "1""#]],
+        Number@17..18 "6""#]],
         );
     }
 }
