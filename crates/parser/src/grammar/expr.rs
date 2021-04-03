@@ -7,13 +7,11 @@ enum BinaryOp {
     Sub,
     Mul,
     Div,
-    NotAnOp,
 }
 
 impl BinaryOp {
     fn binding_power(&self) -> (u8, u8) {
         match self {
-            Self::NotAnOp => (0, 1),
             Self::Add | Self::Sub => (1, 2),
             Self::Mul | Self::Div => (3, 4),
         }
