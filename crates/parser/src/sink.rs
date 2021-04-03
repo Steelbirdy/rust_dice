@@ -1,7 +1,9 @@
-use crate::event::Event;
+use super::event::Event;
+use crate::parser::ParseError;
+use crate::Parse;
 use syntax::{DiceLanguage, SyntaxKind};
 use lexer::Token;
-use rowan::{GreenNode, GreenNodeBuilder, Language};
+use rowan::{GreenNodeBuilder, Language};
 use std::mem;
 
 
@@ -10,19 +12,21 @@ pub struct Sink<'t, 'input> {
     tokens: &'t [Token<'input>],
     cursor: usize,
     events: Vec<Event>,
+    errors: Vec<ParseError>,
 }
 
 impl<'t, 'input> Sink<'t, 'input> {
-    pub fn new(tokens: &'t [Token<'input>], events: Vec<Event>) -> Self {
+    pub(crate) fn new(tokens: &'t [Token<'input>], events: Vec<Event>) -> Self {
         Self {
             builder: GreenNodeBuilder::new(),
             tokens,
             cursor: 0,
             events,
+            errors: Vec::new(),
         }
     }
 
-    pub fn finish(mut self) -> GreenNode {
+    pub fn finish(mut self) -> Parse {
         for idx in 0..self.events.len() {
             match mem::replace(&mut self.events[idx], Event::Placeholder) {
                 Event::StartNode { kind, forward_parent } => {
@@ -51,12 +55,16 @@ impl<'t, 'input> Sink<'t, 'input> {
                 Event::AddToken => self.token(),
                 Event::FinishNode => self.builder.finish_node(),
                 Event::Placeholder => {},
+                Event::Error(error) => self.errors.push(error),
             }
 
             self.eat_trivia();
         }
 
-        self.builder.finish()
+        Parse {
+            green_node: self.builder.finish(),
+            errors: self.errors,
+        }
     }
 
     fn eat_trivia(&mut self) {
@@ -70,7 +78,7 @@ impl<'t, 'input> Sink<'t, 'input> {
     }
 
     fn token(&mut self) {
-        let Token { kind, text } = self.tokens[self.cursor];
+        let Token { kind, text, .. } = self.tokens[self.cursor];
 
         self.builder
             .token(DiceLanguage::kind_to_raw(kind.into()), text);

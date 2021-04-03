@@ -1,3 +1,4 @@
+use std::fmt;
 use lexer::TokenKind;
 use num_derive::{FromPrimitive, ToPrimitive};
 use num_traits::{FromPrimitive, ToPrimitive};
@@ -41,31 +42,27 @@ pub enum SyntaxKind {
 }
 
 impl SyntaxKind {
+    pub const SET_OPERATORS: &'static [SyntaxKind; 8] = &[
+        SyntaxKind::Keep,
+        SyntaxKind::Drop,
+        SyntaxKind::Reroll,
+        SyntaxKind::RerollOnce,
+        SyntaxKind::RerollAdd,
+        SyntaxKind::Explode,
+        SyntaxKind::Min,
+        SyntaxKind::Max,
+    ];
+
+    pub const SET_SELECTORS: &'static [SyntaxKind; 5] = &[
+        SyntaxKind::Number,
+        SyntaxKind::Highest,
+        SyntaxKind::Lowest,
+        SyntaxKind::Greater,
+        SyntaxKind::Less,
+    ];
+
     pub fn is_trivia(self) -> bool {
         matches!(self, Self::Whitespace)
-    }
-
-    pub fn is_set_operator(self) -> bool {
-        matches!(self,
-            Self::Keep
-            | Self::Drop
-            | Self::Reroll
-            | Self::RerollOnce
-            | Self::RerollAdd
-            | Self::Explode
-            | Self::Min
-            | Self::Max
-        )
-    }
-
-    pub fn is_set_selector(self) -> bool {
-        matches!(self,
-            Self::Number
-            | Self::Highest
-            | Self::Lowest
-            | Self::Greater
-            | Self::Less
-        )
     }
 }
 
@@ -97,6 +94,37 @@ impl From<TokenKind> for SyntaxKind {
             TokenKind::Less => Self::Less,
             TokenKind::Error => Self::Error,
         }
+    }
+}
+
+impl fmt::Display for SyntaxKind {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(match self {
+            SyntaxKind::Whitespace => "whitespace",
+            SyntaxKind::Dice => "dice",
+            SyntaxKind::Number => "number",
+            SyntaxKind::Plus => "'+'",
+            SyntaxKind::Minus => "'-'",
+            SyntaxKind::Star => "'*'",
+            SyntaxKind::Slash => "'/'",
+            SyntaxKind::Percent => "'%'",
+            SyntaxKind::LParen => "'('",
+            SyntaxKind::RParen => "')'",
+            SyntaxKind::Comma => "','",
+            SyntaxKind::Keep => "'k'",
+            SyntaxKind::Drop => "'p'",
+            SyntaxKind::Reroll => "'rr'",
+            SyntaxKind::RerollOnce => "'ro'",
+            SyntaxKind::RerollAdd => "'ra'",
+            SyntaxKind::Explode => "'e'",
+            SyntaxKind::Min => "'mi'",
+            SyntaxKind::Max => "'ma'",
+            SyntaxKind::Highest => "'h'",
+            SyntaxKind::Lowest => "'l'",
+            SyntaxKind::Greater => "'>'",
+            SyntaxKind::Less => "'<'",
+            _ => unreachable!(),
+        })
     }
 }
 

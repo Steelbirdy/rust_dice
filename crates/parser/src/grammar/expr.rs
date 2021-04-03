@@ -41,18 +41,16 @@ fn expr_binding_power(p: &mut Parser, minimum_binding_power: u8) -> Option<Compl
     let mut lhs = lhs(p)?;
 
     loop {
-        let op = match p.peek() {
-            Some(SyntaxKind::Plus) => BinaryOp::Add,
-            Some(SyntaxKind::Minus) => BinaryOp::Sub,
-            Some(SyntaxKind::Star) => BinaryOp::Mul,
-            Some(SyntaxKind::Slash) => BinaryOp::Div,
-            Some(SyntaxKind::RParen)
-            | Some(SyntaxKind::Comma)
-            | None => break,
-            _ => {
-                p.error();
-                BinaryOp::NotAnOp
-            }
+        let op = if p.at(SyntaxKind::Plus) {
+            BinaryOp::Add
+        } else if p.at(SyntaxKind::Minus) {
+            BinaryOp::Sub
+        } else if p.at(SyntaxKind::Star) {
+            BinaryOp::Mul
+        } else if p.at(SyntaxKind::Slash) {
+            BinaryOp::Div
+        } else {
+            break;
         };
 
         let (left_binding_power, right_binding_power) = op.binding_power();
@@ -74,12 +72,17 @@ fn expr_binding_power(p: &mut Parser, minimum_binding_power: u8) -> Option<Compl
 
 
 fn lhs(p: &mut Parser) -> Option<CompletedMarker> {
-    let cm = match p.peek() {
-        Some(SyntaxKind::Number) => literal(p),
-        Some(SyntaxKind::Dice) => dice_expr(p),
-        Some(SyntaxKind::Minus) => prefix_expr(p),
-        Some(SyntaxKind::LParen) => paren_or_set_expr(p),
-        _ => return None,
+    let cm = if p.at(SyntaxKind::Number) {
+        literal(p)
+    } else if p.at(SyntaxKind::Dice) {
+        dice_expr(p)
+    } else if p.at(SyntaxKind::Minus) {
+        prefix_expr(p)
+    } else if p.at(SyntaxKind::LParen) {
+        paren_or_set_expr(p)
+    } else {
+        p.error();
+        return None;
     };
 
     Some(cm)
@@ -100,7 +103,7 @@ fn dice_expr(p: &mut Parser) -> CompletedMarker {
     let m = p.start();
     p.bump();
 
-    while p.matches(SyntaxKind::is_set_operator) {
+    while p.at_any(SyntaxKind::SET_OPERATORS) {
         set_op(p);
     }
 
@@ -108,12 +111,12 @@ fn dice_expr(p: &mut Parser) -> CompletedMarker {
 }
 
 fn set_op(p: &mut Parser) -> CompletedMarker {
-    assert!(p.matches(SyntaxKind::is_set_operator));
+    assert!(p.at_any(SyntaxKind::SET_OPERATORS));
 
     let m = p.start();
     p.bump();
 
-    assert!(p.matches(SyntaxKind::is_set_selector));
+    assert!(p.at_any(SyntaxKind::SET_SELECTORS));
     if !p.at(SyntaxKind::Number) {
         p.bump();
     }
@@ -149,12 +152,11 @@ fn paren_or_set_expr(p: &mut Parser) -> CompletedMarker {
     } else {
         expr_binding_power(p, 0);
 
-        match p.peek() {
-            Some(SyntaxKind::Comma) => set_expr(p, m),
-            _ => {
-                p.expect(SyntaxKind::RParen);
-                m.complete(p, SyntaxKind::ParenExpr)
-            }
+        if p.at(SyntaxKind::Comma) {
+            set_expr(p, m)
+        } else {
+            p.expect(SyntaxKind::RParen);
+            m.complete(p, SyntaxKind::ParenExpr)
         }
     }
 }
@@ -171,7 +173,7 @@ fn set_expr(p: &mut Parser, m: Marker) -> CompletedMarker {
 
     p.expect(SyntaxKind::RParen);
 
-    while p.matches(SyntaxKind::is_set_operator) {
+    while p.at_any(SyntaxKind::SET_OPERATORS) {
         set_op(p);
     }
 
@@ -673,7 +675,8 @@ Root@0..4
   ParenExpr@0..4
     LParen@0..1 "("
     DiceExpr@1..4
-      Dice@1..4 "1d4""#]],
+      Dice@1..4 "1d4"
+error at 1..4: expected 'k', 'p', 'rr', 'ro', 'ra', 'e', 'mi', 'ma', '+', '-', '*', '/', ',', or ')'"#]],
         );
     }
 
