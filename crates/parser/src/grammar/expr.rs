@@ -1,4 +1,5 @@
 use super::*;
+use crate::parser::marker::Marker;
 
 
 enum BinaryOp {
@@ -140,12 +141,11 @@ fn paren_or_set_expr(p: &mut Parser) -> CompletedMarker {
     } else {
         expr_binding_power(p, 0);
 
-        match p.peek() {
-            Some(SyntaxKind::Comma) => {
-                set_expr(p);
-                SyntaxKind::SetExpr
-            }
-            _ => SyntaxKind::ParenExpr,
+        if p.at(SyntaxKind::Comma) {
+            set_expr(p);
+            SyntaxKind::SetExpr
+        } else {
+            SyntaxKind::ParenExpr
         }
     };
 
@@ -156,6 +156,8 @@ fn paren_or_set_expr(p: &mut Parser) -> CompletedMarker {
 }
 
 fn set_expr(p: &mut Parser) {
+    assert!(p.at(SyntaxKind::Comma));
+
     while p.at(SyntaxKind::Comma) {
         p.bump();
         if p.at(SyntaxKind::RParen) {
