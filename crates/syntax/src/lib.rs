@@ -32,6 +32,7 @@ pub enum SyntaxKind {
 
     Root,
     DiceExpr,
+    DiceOp,
     InfixExpr,
     Literal,
     ParenExpr,
@@ -42,6 +43,29 @@ pub enum SyntaxKind {
 impl SyntaxKind {
     pub fn is_trivia(self) -> bool {
         matches!(self, Self::Whitespace)
+    }
+
+    pub fn is_dice_operator(self) -> bool {
+        matches!(self,
+            Self::Keep
+            | Self::Drop
+            | Self::Reroll
+            | Self::RerollOnce
+            | Self::RerollAdd
+            | Self::Explode
+            | Self::Min
+            | Self::Max
+        )
+    }
+
+    pub fn is_dice_selector(self) -> bool {
+        matches!(self,
+            Self::Number
+            | Self::Highest
+            | Self::Lowest
+            | Self::Greater
+            | Self::Less
+        )
     }
 }
 

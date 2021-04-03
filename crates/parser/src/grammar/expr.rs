@@ -90,7 +90,27 @@ fn dice_expr(p: &mut Parser) -> CompletedMarker {
 
     let m = p.start();
     p.bump();
+
+    while p.matches(SyntaxKind::is_dice_operator) {
+        dice_op(p);
+    }
+
     m.complete(p, SyntaxKind::DiceExpr)
+}
+
+fn dice_op(p: &mut Parser) -> CompletedMarker {
+    assert!(p.matches(SyntaxKind::is_dice_operator));
+
+    let m = p.start();
+    p.bump();
+
+    assert!(p.matches(SyntaxKind::is_dice_selector));
+    if !p.at(SyntaxKind::Number) {
+        p.bump();
+    }
+    literal(p);
+
+    m.complete(p, SyntaxKind::DiceOp)
 }
 
 fn prefix_expr(p: &mut Parser) -> CompletedMarker {
@@ -483,6 +503,42 @@ Root@0..7
       Dice@1..5 "1d20"
     Comma@5..6 ","
     RParen@6..7 ")""#]],
+        );
+    }
+
+    #[test]
+    fn parse_dice_with_single_dice_operation() {
+        check(
+            "2d20kh1",
+            expect![[r#"
+Root@0..7
+  DiceExpr@0..7
+    Dice@0..4 "2d20"
+    DiceOp@4..7
+      Keep@4..5 "k"
+      Highest@5..6 "h"
+      Literal@6..7
+        Number@6..7 "1""#]],
+        );
+    }
+
+    #[test]
+    fn parse_dice_with_multiple_dice_operations() {
+        check(
+            "8d6rr1e>5",
+            expect![[r#"
+Root@0..9
+  DiceExpr@0..9
+    Dice@0..3 "8d6"
+    DiceOp@3..6
+      Reroll@3..5 "rr"
+      Literal@5..6
+        Number@5..6 "1"
+    DiceOp@6..9
+      Explode@6..7 "e"
+      Greater@7..8 ">"
+      Literal@8..9
+        Number@8..9 "5""#]],
         );
     }
 }
