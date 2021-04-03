@@ -1,4 +1,5 @@
 use logos::Logos;
+use std::fmt;
 
 
 #[derive(Debug, Copy, Clone, PartialEq, Logos)]
@@ -74,6 +75,63 @@ pub enum TokenKind {
 
     #[error]
     Error,
+}
+
+
+impl TokenKind {
+    pub const SET_OPERATORS: &'static [Self; 8] = &[
+        Self::Keep,
+        Self::Drop,
+        Self::Reroll,
+        Self::RerollOnce,
+        Self::RerollAdd,
+        Self::Explode,
+        Self::Min,
+        Self::Max,
+    ];
+
+    pub const SET_SELECTORS: &'static [Self; 5] = &[
+        Self::Number,
+        Self::Highest,
+        Self::Lowest,
+        Self::Greater,
+        Self::Less,
+    ];
+
+    pub fn is_trivia(self) -> bool {
+        matches!(self, Self::Whitespace)
+    }
+}
+
+impl fmt::Display for TokenKind {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(match self {
+            Self::Whitespace => "whitespace",
+            Self::Dice => "dice",
+            Self::Number => "number",
+            Self::Plus => "'+'",
+            Self::Minus => "'-'",
+            Self::Star => "'*'",
+            Self::Slash => "'/'",
+            Self::Percent => "'%'",
+            Self::LParen => "'('",
+            Self::RParen => "')'",
+            Self::Comma => "','",
+            Self::Keep => "'k'",
+            Self::Drop => "'p'",
+            Self::Reroll => "'rr'",
+            Self::RerollOnce => "'ro'",
+            Self::RerollAdd => "'ra'",
+            Self::Explode => "'e'",
+            Self::Min => "'mi'",
+            Self::Max => "'ma'",
+            Self::Highest => "'h'",
+            Self::Lowest => "'l'",
+            Self::Greater => "'>'",
+            Self::Less => "'<'",
+            Self::Error => "an unrecognized token",
+        })
+    }
 }
 
 

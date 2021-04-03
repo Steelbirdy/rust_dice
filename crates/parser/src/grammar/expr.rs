@@ -39,13 +39,13 @@ fn expr_binding_power(p: &mut Parser, minimum_binding_power: u8) -> Option<Compl
     let mut lhs = lhs(p)?;
 
     loop {
-        let op = if p.at(SyntaxKind::Plus) {
+        let op = if p.at(TokenKind::Plus) {
             BinaryOp::Add
-        } else if p.at(SyntaxKind::Minus) {
+        } else if p.at(TokenKind::Minus) {
             BinaryOp::Sub
-        } else if p.at(SyntaxKind::Star) {
+        } else if p.at(TokenKind::Star) {
             BinaryOp::Mul
-        } else if p.at(SyntaxKind::Slash) {
+        } else if p.at(TokenKind::Slash) {
             BinaryOp::Div
         } else {
             break;
@@ -74,13 +74,13 @@ fn expr_binding_power(p: &mut Parser, minimum_binding_power: u8) -> Option<Compl
 
 
 fn lhs(p: &mut Parser) -> Option<CompletedMarker> {
-    let cm = if p.at(SyntaxKind::Number) {
+    let cm = if p.at(TokenKind::Number) {
         literal(p)
-    } else if p.at(SyntaxKind::Dice) {
+    } else if p.at(TokenKind::Dice) {
         dice_expr(p)
-    } else if p.at(SyntaxKind::Minus) {
+    } else if p.at(TokenKind::Minus) {
         prefix_expr(p)
-    } else if p.at(SyntaxKind::LParen) {
+    } else if p.at(TokenKind::LParen) {
         paren_or_set_expr(p)
     } else {
         p.error();
@@ -92,7 +92,7 @@ fn lhs(p: &mut Parser) -> Option<CompletedMarker> {
 
 
 fn literal(p: &mut Parser) -> CompletedMarker {
-    assert!(p.at(SyntaxKind::Number));
+    assert!(p.at(TokenKind::Number));
 
     let m = p.start();
     p.bump();
@@ -100,12 +100,12 @@ fn literal(p: &mut Parser) -> CompletedMarker {
 }
 
 fn dice_expr(p: &mut Parser) -> CompletedMarker {
-    assert!(p.at(SyntaxKind::Dice));
+    assert!(p.at(TokenKind::Dice));
 
     let m = p.start();
     p.bump();
 
-    while p.at_any(SyntaxKind::SET_OPERATORS) {
+    while p.at_any(TokenKind::SET_OPERATORS) {
         set_op(p);
     }
 
@@ -113,13 +113,13 @@ fn dice_expr(p: &mut Parser) -> CompletedMarker {
 }
 
 fn set_op(p: &mut Parser) -> CompletedMarker {
-    assert!(p.at_any(SyntaxKind::SET_OPERATORS));
+    assert!(p.at_any(TokenKind::SET_OPERATORS));
 
     let m = p.start();
     p.bump();
 
-    assert!(p.at_any(SyntaxKind::SET_SELECTORS));
-    if !p.at(SyntaxKind::Number) {
+    assert!(p.at_any(TokenKind::SET_SELECTORS));
+    if !p.at(TokenKind::Number) {
         p.bump();
     }
     literal(p);
@@ -128,7 +128,7 @@ fn set_op(p: &mut Parser) -> CompletedMarker {
 }
 
 fn prefix_expr(p: &mut Parser) -> CompletedMarker {
-    assert!(p.at(SyntaxKind::Minus));
+    assert!(p.at(TokenKind::Minus));
 
     let m = p.start();
 
@@ -144,38 +144,38 @@ fn prefix_expr(p: &mut Parser) -> CompletedMarker {
 }
 
 fn paren_or_set_expr(p: &mut Parser) -> CompletedMarker {
-    assert!(p.at(SyntaxKind::LParen));
+    assert!(p.at(TokenKind::LParen));
 
     let m = p.start();
     p.bump();
 
-    if p.at(SyntaxKind::RParen) {
+    if p.at(TokenKind::RParen) {
         set_expr(p, m)
     } else {
         expr_binding_power(p, 0);
 
-        if p.at(SyntaxKind::Comma) {
+        if p.at(TokenKind::Comma) {
             set_expr(p, m)
         } else {
-            p.expect(SyntaxKind::RParen);
+            p.expect(TokenKind::RParen);
             m.complete(p, SyntaxKind::ParenExpr)
         }
     }
 }
 
 fn set_expr(p: &mut Parser, m: Marker) -> CompletedMarker {
-    while p.at(SyntaxKind::Comma) {
+    while p.at(TokenKind::Comma) {
         p.bump();
-        if p.at(SyntaxKind::RParen) {
+        if p.at(TokenKind::RParen) {
             break;
         } else {
             expr_binding_power(p, 0);
         }
     }
 
-    p.expect(SyntaxKind::RParen);
+    p.expect(TokenKind::RParen);
 
-    while p.at_any(SyntaxKind::SET_OPERATORS) {
+    while p.at_any(TokenKind::SET_OPERATORS) {
         set_op(p);
     }
 

@@ -2,6 +2,7 @@ mod expr;
 
 use crate::parser::marker::CompletedMarker;
 use crate::parser::Parser;
+use lexer::TokenKind;
 use syntax::SyntaxKind;
 
 

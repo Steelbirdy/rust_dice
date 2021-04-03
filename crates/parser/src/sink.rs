@@ -1,7 +1,7 @@
 use super::event::Event;
 use crate::parser::ParseError;
 use crate::Parse;
-use syntax::{DiceLanguage, SyntaxKind};
+use syntax::DiceLanguage;
 use lexer::Token;
 use rowan::{GreenNodeBuilder, Language};
 use std::mem;
@@ -69,7 +69,7 @@ impl<'t, 'input> Sink<'t, 'input> {
 
     fn eat_trivia(&mut self) {
         while let Some(token) = self.tokens.get(self.cursor) {
-            if !SyntaxKind::from(token.kind).is_trivia() {
+            if !token.kind.is_trivia() {
                 break;
             }
 
