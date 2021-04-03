@@ -1,4 +1,4 @@
-use dice::parser::parse;
+use parser::parse;
 use std::io::{self, Write};
 
 
