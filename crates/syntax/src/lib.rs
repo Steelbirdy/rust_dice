@@ -73,6 +73,8 @@ impl From<TokenKind> for SyntaxKind {
 
 
 pub type SyntaxNode = rowan::SyntaxNode<DiceLanguage>;
+pub type SyntaxToken = rowan::SyntaxToken<DiceLanguage>;
+pub type SyntaxElement = rowan::SyntaxElement<DiceLanguage>;
 
 
 #[derive(Debug, Copy, Clone, Ord, PartialOrd, Eq, PartialEq, Hash)]
