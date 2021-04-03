@@ -108,7 +108,7 @@ pub(crate) enum SyntaxKind {
     Error,
 
     Root,
-    BinaryExpr,
+    InfixExpr,
     Literal,
     ParenExpr,
     PrefixExpr,
