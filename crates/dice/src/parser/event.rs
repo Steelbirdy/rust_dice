@@ -1,4 +1,4 @@
-use lexer::SyntaxKind;
+use crate::syntax::SyntaxKind;
 
 
 #[derive(Debug, Clone, PartialEq)]

@@ -1,6 +1,6 @@
 use super::event::Event;
+use crate::syntax::{DiceLanguage, SyntaxKind};
 use lexer::Token;
-use crate::syntax::DiceLanguage;
 use rowan::{GreenNode, GreenNodeBuilder, Language};
 use std::mem;
 
@@ -61,7 +61,7 @@ impl<'t, 'input> Sink<'t, 'input> {
 
     fn eat_trivia(&mut self) {
         while let Some(token) = self.tokens.get(self.cursor) {
-            if !token.kind.is_trivia() {
+            if !SyntaxKind::from(token.kind).is_trivia() {
                 break;
             }
 
@@ -73,7 +73,7 @@ impl<'t, 'input> Sink<'t, 'input> {
         let Token { kind, text } = self.tokens[self.cursor];
 
         self.builder
-            .token(DiceLanguage::kind_to_raw(kind), text);
+            .token(DiceLanguage::kind_to_raw(kind.into()), text);
 
         self.cursor += 1;
     }

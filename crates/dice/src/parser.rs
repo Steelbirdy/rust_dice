@@ -4,13 +4,13 @@ mod marker;
 mod sink;
 mod source;
 
-use lexer::{Token, Lexer, SyntaxKind};
-use crate::syntax::SyntaxNode;
 use event::Event;
 use expr::expr;
 use marker::Marker;
 use sink::Sink;
 use source::Source;
+use crate::syntax::{SyntaxNode, SyntaxKind};
+use lexer::{Token, Lexer};
 use rowan::GreenNode;
 
 
