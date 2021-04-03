@@ -1,5 +1,5 @@
 [package]
-name = "dice-cli"
+name = "dice"
 version = "0.1.0"
 authors = ["Steelbirdy <patrickammons@comcast.net>"]
 edition = "2018"
