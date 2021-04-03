@@ -63,6 +63,10 @@ impl<'l, 'input> Parser<'l, 'input> {
 
         self.events.push(Event::AddToken { kind: *kind, text });
     }
+
+    fn at(&mut self, kind: SyntaxKind) -> bool {
+        self.peek() == Some(kind)
+    }
 }
 
 
