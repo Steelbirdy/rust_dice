@@ -7,11 +7,13 @@ enum BinaryOp {
     Sub,
     Mul,
     Div,
+    NotAnOp,
 }
 
 impl BinaryOp {
     fn binding_power(&self) -> (u8, u8) {
         match self {
+            Self::NotAnOp => (0, 1),
             Self::Add | Self::Sub => (1, 2),
             Self::Mul | Self::Div => (3, 4),
         }
@@ -36,7 +38,7 @@ pub(super) fn expr(p: &mut Parser) -> Option<CompletedMarker> {
 }
 
 fn expr_binding_power(p: &mut Parser, minimum_binding_power: u8) -> Option<CompletedMarker> {
-    let mut lhs = lhs(p)?;  // TODO: handle errors
+    let mut lhs = lhs(p)?;
 
     loop {
         let op = match p.peek() {
@@ -44,7 +46,13 @@ fn expr_binding_power(p: &mut Parser, minimum_binding_power: u8) -> Option<Compl
             Some(SyntaxKind::Minus) => BinaryOp::Sub,
             Some(SyntaxKind::Star) => BinaryOp::Mul,
             Some(SyntaxKind::Slash) => BinaryOp::Div,
-            _ => return None,  // TODO: handle errors
+            Some(SyntaxKind::RParen)
+            | Some(SyntaxKind::Comma)
+            | None => break,
+            _ => {
+                p.error();
+                BinaryOp::NotAnOp
+            }
         };
 
         let (left_binding_power, right_binding_power) = op.binding_power();
@@ -143,11 +151,10 @@ fn paren_or_set_expr(p: &mut Parser) -> CompletedMarker {
 
         match p.peek() {
             Some(SyntaxKind::Comma) => set_expr(p, m),
-            Some(SyntaxKind::RParen) => {
-                p.bump();
+            _ => {
+                p.expect(SyntaxKind::RParen);
                 m.complete(p, SyntaxKind::ParenExpr)
             }
-            _ => panic!()  // TODO: handle errors
         }
     }
 }
@@ -162,8 +169,7 @@ fn set_expr(p: &mut Parser, m: Marker) -> CompletedMarker {
         }
     }
 
-    assert!(p.at(SyntaxKind::RParen));
-    p.bump();
+    p.expect(SyntaxKind::RParen);
 
     while p.matches(SyntaxKind::is_set_operator) {
         set_op(p);
@@ -655,6 +661,19 @@ Root@0..18
       Max@15..17 "ma"
       Literal@17..18
         Number@17..18 "6""#]],
+        );
+    }
+
+    #[test]
+    fn parse_unclosed_parens() {
+        check(
+            "(1d4",
+            expect![[r#"
+Root@0..4
+  ParenExpr@0..4
+    LParen@0..1 "("
+    DiceExpr@1..4
+      Dice@1..4 "1d4""#]],
         );
     }
 }
