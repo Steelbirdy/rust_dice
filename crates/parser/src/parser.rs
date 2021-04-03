@@ -44,6 +44,10 @@ impl<'t, 'input> Parser<'t, 'input> {
     pub(crate) fn at(&mut self, kind: SyntaxKind) -> bool {
         self.peek() == Some(kind)
     }
+
+    pub(crate) fn matches(&mut self, closure: fn (SyntaxKind) -> bool) -> bool {
+        self.peek().map_or(false, closure)
+    }
 }
 
 
