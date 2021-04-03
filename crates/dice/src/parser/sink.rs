@@ -1,5 +1,5 @@
 use super::event::Event;
-use crate::lexer::{Token, SyntaxKind};
+use crate::lexer::Token;
 use crate::syntax::DiceLanguage;
 use rowan::{GreenNode, GreenNodeBuilder, Language};
 use std::mem;
@@ -9,11 +9,11 @@ pub(super) struct Sink<'t, 'input> {
     builder: GreenNodeBuilder<'static>,
     tokens: &'t [Token<'input>],
     cursor: usize,
-    events: Vec<Event<'input>>,
+    events: Vec<Event>,
 }
 
 impl<'t, 'input> Sink<'t, 'input> {
-    pub(super) fn new(tokens: &'t [Token<'input>], events: Vec<Event<'input>>) -> Self {
+    pub(super) fn new(tokens: &'t [Token<'input>], events: Vec<Event>) -> Self {
         Self {
             builder: GreenNodeBuilder::new(),
             tokens,
@@ -48,7 +48,7 @@ impl<'t, 'input> Sink<'t, 'input> {
                         self.builder.start_node(DiceLanguage::kind_to_raw(kind));
                     }
                 }
-                Event::AddToken { kind, text } => self.token(kind, text),
+                Event::AddToken => self.token(),
                 Event::FinishNode => self.builder.finish_node(),
                 Event::Placeholder => {},
             }
@@ -65,12 +65,16 @@ impl<'t, 'input> Sink<'t, 'input> {
                 break;
             }
 
-            self.token(token.kind, token.text.into());
+            self.token();
         }
     }
 
-    fn token(&mut self, kind: SyntaxKind, text: &'input str) {
-        self.builder.token(DiceLanguage::kind_to_raw(kind), text);
+    fn token(&mut self) {
+        let Token { kind, text } = self.tokens[self.cursor];
+
+        self.builder
+            .token(DiceLanguage::kind_to_raw(kind), text);
+
         self.cursor += 1;
     }
 }

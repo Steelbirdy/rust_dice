@@ -28,7 +28,7 @@ pub fn parse(input: &str) -> Parse {
 
 struct Parser<'t, 'input> {
     source: Source<'t, 'input>,
-    events: Vec<Event<'input>>,
+    events: Vec<Event>,
 }
 
 impl<'t, 'input> Parser<'t, 'input> {
@@ -39,7 +39,7 @@ impl<'t, 'input> Parser<'t, 'input> {
         }
     }
 
-    pub fn parse(mut self) -> Vec<Event<'input>> {
+    pub fn parse(mut self) -> Vec<Event> {
         let m = self.start();
         expr(&mut self);
         m.complete(&mut self, SyntaxKind::Root);
@@ -59,9 +59,8 @@ impl<'t, 'input> Parser<'t, 'input> {
     }
 
     fn bump(&mut self) {
-        let Token { kind, text } = self.source.next_token().unwrap();
-
-        self.events.push(Event::AddToken { kind: *kind, text });
+        self.source.next_token().unwrap();
+        self.events.push(Event::AddToken);
     }
 
     fn at(&mut self, kind: SyntaxKind) -> bool {
