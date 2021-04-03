@@ -1,4 +1,4 @@
-use crate::lexer::{Token, SyntaxKind};
+use lexer::{Token, SyntaxKind};
 
 
 pub(super) struct Source<'t, 'input> {

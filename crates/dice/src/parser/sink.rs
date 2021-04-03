@@ -1,5 +1,5 @@
 use super::event::Event;
-use crate::lexer::Token;
+use lexer::Token;
 use crate::syntax::DiceLanguage;
 use rowan::{GreenNode, GreenNodeBuilder, Language};
 use std::mem;

@@ -1,4 +1,4 @@
-use crate::lexer::SyntaxKind;
+use lexer::SyntaxKind;
 use num_traits::{FromPrimitive, ToPrimitive};
 
 

@@ -2,12 +2,12 @@ use logos::Logos;
 use num_derive::{FromPrimitive, ToPrimitive};
 
 
-pub(crate) struct Lexer<'a> {
+pub struct Lexer<'a> {
     inner: logos::Lexer<'a, SyntaxKind>,
 }
 
 impl<'a> Lexer<'a> {
-    pub(crate) fn new(input: &'a str) -> Self {
+    pub fn new(input: &'a str) -> Self {
         Self {
             inner: SyntaxKind::lexer(input),
         }
@@ -27,14 +27,14 @@ impl<'a> Iterator for Lexer<'a> {
 
 
 #[derive(Debug, PartialEq)]
-pub(crate) struct Token<'a> {
-    pub(crate) kind: SyntaxKind,
-    pub(crate) text: &'a str,
+pub struct Token<'a> {
+    pub kind: SyntaxKind,
+    pub text: &'a str,
 }
 
 
 #[derive(Debug, Copy, Clone, PartialEq, Logos, FromPrimitive, ToPrimitive)]
-pub(crate) enum SyntaxKind {
+pub enum SyntaxKind {
     #[regex(" +")]
     Whitespace,
 
@@ -115,7 +115,7 @@ pub(crate) enum SyntaxKind {
 }
 
 impl SyntaxKind {
-    pub(crate) fn is_trivia(self) -> bool {
+    pub fn is_trivia(self) -> bool {
         matches!(self, Self::Whitespace)
     }
 }

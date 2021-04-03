@@ -4,7 +4,7 @@ mod marker;
 mod sink;
 mod source;
 
-use crate::lexer::{Token, Lexer, SyntaxKind};
+use lexer::{Token, Lexer, SyntaxKind};
 use crate::syntax::SyntaxNode;
 use event::Event;
 use expr::expr;

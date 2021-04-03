@@ -1,6 +1,6 @@
 use super::event::Event;
 use super::Parser;
-use crate::lexer::SyntaxKind;
+use lexer::SyntaxKind;
 use drop_bomb::DropBomb;
 
 

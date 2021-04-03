@@ -1,5 +1,5 @@
 use super::Parser;
-use crate::lexer::SyntaxKind;
+use lexer::SyntaxKind;
 use crate::parser::marker::CompletedMarker;
 
 
