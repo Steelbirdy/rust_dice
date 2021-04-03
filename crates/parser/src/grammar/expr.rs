@@ -1,4 +1,5 @@
 use super::*;
+use crate::parser::marker::Marker;
 
 
 enum BinaryOp {
@@ -92,13 +93,13 @@ fn dice_expr(p: &mut Parser) -> CompletedMarker {
     p.bump();
 
     while p.matches(SyntaxKind::is_set_operator) {
-        dice_op(p);
+        set_op(p);
     }
 
     m.complete(p, SyntaxKind::DiceExpr)
 }
 
-fn dice_op(p: &mut Parser) -> CompletedMarker {
+fn set_op(p: &mut Parser) -> CompletedMarker {
     assert!(p.matches(SyntaxKind::is_set_operator));
 
     let m = p.start();
@@ -135,28 +136,23 @@ fn paren_or_set_expr(p: &mut Parser) -> CompletedMarker {
     let m = p.start();
     p.bump();
 
-    let kind = if p.at(SyntaxKind::RParen) {
-        SyntaxKind::SetExpr
+    if p.at(SyntaxKind::RParen) {
+        set_expr(p, m)
     } else {
         expr_binding_power(p, 0);
 
-        if p.at(SyntaxKind::Comma) {
-            set_expr(p);
-            SyntaxKind::SetExpr
-        } else {
-            SyntaxKind::ParenExpr
+        match p.peek() {
+            Some(SyntaxKind::Comma) => set_expr(p, m),
+            Some(SyntaxKind::RParen) => {
+                p.bump();
+                m.complete(p, SyntaxKind::ParenExpr)
+            }
+            _ => panic!()  // TODO: handle errors
         }
-    };
-
-    assert!(p.at(SyntaxKind::RParen));
-    p.bump();
-
-    m.complete(p, kind)
+    }
 }
 
-fn set_expr(p: &mut Parser) {
-    assert!(p.at(SyntaxKind::Comma));
-
+fn set_expr(p: &mut Parser, m: Marker) -> CompletedMarker {
     while p.at(SyntaxKind::Comma) {
         p.bump();
         if p.at(SyntaxKind::RParen) {
@@ -165,6 +161,15 @@ fn set_expr(p: &mut Parser) {
             expr_binding_power(p, 0);
         }
     }
+
+    assert!(p.at(SyntaxKind::RParen));
+    p.bump();
+
+    while p.matches(SyntaxKind::is_set_operator) {
+        set_op(p);
+    }
+
+    m.complete(p, SyntaxKind::SetExpr)
 }
 
 
@@ -508,7 +513,7 @@ Root@0..7
     }
 
     #[test]
-    fn parse_dice_with_single_dice_operation() {
+    fn parse_dice_with_single_set_operation() {
         check(
             "2d20kh1",
             expect![[r#"
@@ -524,7 +529,7 @@ Root@0..7
     }
 
     #[test]
-    fn parse_dice_with_multiple_dice_operations() {
+    fn parse_dice_with_multiple_set_operations() {
         check(
             "8d6rr1e>5",
             expect![[r#"
@@ -540,6 +545,73 @@ Root@0..9
       Greater@7..8 ">"
       Literal@8..9
         Number@8..9 "5""#]],
+        );
+    }
+
+    #[test]
+    fn parse_set_with_single_set_operation() {
+        check(
+            "(1, 3d4ro<3 , 2d20kl1)p>5",
+            expect![[r#"
+Root@0..25
+  SetExpr@0..25
+    LParen@0..1 "("
+    Literal@1..2
+      Number@1..2 "1"
+    Comma@2..3 ","
+    Whitespace@3..4 " "
+    DiceExpr@4..12
+      Dice@4..7 "3d4"
+      SetOp@7..12
+        RerollOnce@7..9 "ro"
+        Less@9..10 "<"
+        Literal@10..12
+          Number@10..11 "3"
+          Whitespace@11..12 " "
+    Comma@12..13 ","
+    Whitespace@13..14 " "
+    DiceExpr@14..21
+      Dice@14..18 "2d20"
+      SetOp@18..21
+        Keep@18..19 "k"
+        Lowest@19..20 "l"
+        Literal@20..21
+          Number@20..21 "1"
+    RParen@21..22 ")"
+    SetOp@22..25
+      Drop@22..23 "p"
+      Greater@23..24 ">"
+      Literal@24..25
+        Number@24..25 "5""#]]
+        )
+    }
+
+    #[test]
+    fn parse_set_with_multiple_set_operations() {
+        check(
+            "(1d4,1d6,1d8)p8kh1",
+            expect![[r#"
+Root@0..18
+  SetExpr@0..18
+    LParen@0..1 "("
+    DiceExpr@1..4
+      Dice@1..4 "1d4"
+    Comma@4..5 ","
+    DiceExpr@5..8
+      Dice@5..8 "1d6"
+    Comma@8..9 ","
+    DiceExpr@9..12
+      Dice@9..12 "1d8"
+    RParen@12..13 ")"
+    SetOp@13..15
+      Drop@13..14 "p"
+      Literal@14..15
+        Number@14..15 "8"
+    SetOp@15..18
+      Keep@15..16 "k"
+      Highest@16..17 "h"
+      Literal@17..18
+        Number@17..18 "1""#]],
         );
     }
 }
