@@ -1,6 +1,5 @@
 use super::Parser;
 use crate::lexer::SyntaxKind;
-use std::cmp::min;
 
 
 enum Op {
@@ -67,6 +66,48 @@ mod tests {
             expect![[r#"
 Root@0..3
   Number@0..3 "123""#]],
+        );
+    }
+
+    #[test]
+    fn parse_simple_binary_expression() {
+        check(
+            "1+2",
+            expect![[r#"
+Root@0..3
+  BinOp@0..3
+    Number@0..1 "1"
+    Plus@1..2 "+"
+    Number@2..3 "2""#]],
+        );
+    }
+
+    #[test]
+    fn parse_left_associative_binary_expression() {
+        check(
+            "1+2+3+4",
+            expect![[r#"
+                Root@0..3
+                  BinOp@0..3
+                    Number@0..1 "1"
+                    Plus@1..2 "+"
+                    Number@2..3 "2""#]],
+        );
+    }
+
+    #[test]
+    fn parse_mixed_binding_power_binary_expression() {
+        check(
+            "1+2*3-4",
+            expect![[r#"
+                Root@0..5
+                  BinOp@0..5
+                    Number@0..1 "1"
+                    Plus@1..2 "+"
+                    BinOp@2..5
+                      Number@2..3 "2"
+                      Star@3..4 "*"
+                      Number@4..5 "3""#]],
         );
     }
 }
