@@ -36,51 +36,61 @@ pub(super) fn expr(p: &mut Parser) {
 }
 
 fn expr_binding_power(p: &mut Parser, minimum_binding_power: u8) {
-    let checkpoint = p.checkpoint();
-
-    match p.peek() {
-        Some(SyntaxKind::Number) => p.bump(),
+    let mut lhs = match p.peek() {
+        Some(SyntaxKind::Number) => {
+            let m = p.start();
+            p.bump();
+            m.complete(p, SyntaxKind::Literal)
+        }
         Some(SyntaxKind::Minus) => {
+            let m = p.start();
+
             let op = PrefixOp::Neg;
             let ((), right_binding_power) = op.binding_power();
 
             // Eat the operator's token.
             p.bump();
 
-            p.start_node_at(checkpoint, SyntaxKind::PrefixExpr);
             expr_binding_power(p, right_binding_power);
-            p.finish_node();
+
+            m.complete(p, SyntaxKind::PrefixExpr)
         }
         Some(SyntaxKind::LParen) => {
+            let m = p.start();
+
             p.bump();
             expr_binding_power(p, 0);
 
             assert_eq!(p.peek(), Some(SyntaxKind::RParen));
             p.bump();
-        },
-        _ => {}
-    }
 
-    let op = match p.peek() {
-        Some(SyntaxKind::Plus) => InfixOp::Add,
-        Some(SyntaxKind::Minus) => InfixOp::Sub,
-        Some(SyntaxKind::Star) => InfixOp::Mul,
-        Some(SyntaxKind::Slash) => InfixOp::Div,
+            m.complete(p, SyntaxKind::ParenExpr)
+        },
         _ => return,  // TODO: handle errors
     };
 
-    let (left_binding_power, right_binding_power) = op.binding_power();
+    loop {
+        let op = match p.peek() {
+            Some(SyntaxKind::Plus) => InfixOp::Add,
+            Some(SyntaxKind::Minus) => InfixOp::Sub,
+            Some(SyntaxKind::Star) => InfixOp::Mul,
+            Some(SyntaxKind::Slash) => InfixOp::Div,
+            _ => return,  // TODO: handle errors
+        };
 
-    if left_binding_power < minimum_binding_power {
-        return;
+        let (left_binding_power, right_binding_power) = op.binding_power();
+
+        if left_binding_power < minimum_binding_power {
+            return;
+        }
+
+        // Eat the operator's token.
+        p.bump();
+
+        let m = lhs.precede(p);
+        expr_binding_power(p, right_binding_power);
+        lhs = m.complete(p, SyntaxKind::BinaryExpr);
     }
-
-    // Eat the operator's token.
-    p.bump();
-
-    p.start_node_at(checkpoint, SyntaxKind::BinaryExpr);
-    expr_binding_power(p, right_binding_power);
-    p.finish_node();
 }
 
 
@@ -95,7 +105,8 @@ mod tests {
             "123",
             expect![[r#"
 Root@0..3
-  Number@0..3 "123""#]],
+  Literal@0..3
+    Number@0..3 "123""#]],
         );
     }
 
@@ -106,9 +117,11 @@ Root@0..3
             expect![[r#"
 Root@0..3
   BinaryExpr@0..3
-    Number@0..1 "1"
+    Literal@0..1
+      Number@0..1 "1"
     Plus@1..2 "+"
-    Number@2..3 "2""#]],
+    Literal@2..3
+      Number@2..3 "2""#]],
         );
     }
 
@@ -117,11 +130,21 @@ Root@0..3
         check(
             "1+2+3+4",
             expect![[r#"
-                Root@0..3
-                  BinaryExpr@0..3
-                    Number@0..1 "1"
-                    Plus@1..2 "+"
-                    Number@2..3 "2""#]],
+Root@0..7
+  BinaryExpr@0..7
+    BinaryExpr@0..5
+      BinaryExpr@0..3
+        Literal@0..1
+          Number@0..1 "1"
+        Plus@1..2 "+"
+        Literal@2..3
+          Number@2..3 "2"
+      Plus@3..4 "+"
+      Literal@4..5
+        Number@4..5 "3"
+    Plus@5..6 "+"
+    Literal@6..7
+      Number@6..7 "4""#]],
         );
     }
 
@@ -130,14 +153,21 @@ Root@0..3
         check(
             "1+2*3-4",
             expect![[r#"
-                Root@0..5
-                  BinaryExpr@0..5
-                    Number@0..1 "1"
-                    Plus@1..2 "+"
-                    BinaryExpr@2..5
-                      Number@2..3 "2"
-                      Star@3..4 "*"
-                      Number@4..5 "3""#]],
+Root@0..7
+  BinaryExpr@0..7
+    BinaryExpr@0..5
+      Literal@0..1
+        Number@0..1 "1"
+      Plus@1..2 "+"
+      BinaryExpr@2..5
+        Literal@2..3
+          Number@2..3 "2"
+        Star@3..4 "*"
+        Literal@4..5
+          Number@4..5 "3"
+    Minus@5..6 "-"
+    Literal@6..7
+      Number@6..7 "4""#]],
         );
     }
 
@@ -149,22 +179,25 @@ Root@0..3
 Root@0..3
   PrefixExpr@0..3
     Minus@0..1 "-"
-    Number@1..3 "10""#]],
+    Literal@1..3
+      Number@1..3 "10""#]],
         );
     }
 
     #[test]
     fn negation_has_higher_binding_power_than_infix_operators() {
         check(
-            "-20+20",
-            expect![[r#"
-Root@0..6
-  BinaryExpr@0..6
-    PrefixExpr@0..3
-      Minus@0..1 "-"
-      Number@1..3 "20"
-    Plus@3..4 "+"
-    Number@4..6 "20""#]],
+"-20+20",
+expect![[r#"
+    Root@0..6
+      BinaryExpr@0..6
+        PrefixExpr@0..3
+          Minus@0..1 "-"
+          Literal@1..3
+            Number@1..3 "20"
+        Plus@3..4 "+"
+        Literal@4..6
+          Number@4..6 "20""#]],
         );
     }
 
@@ -174,19 +207,26 @@ Root@0..6
             "((((((10))))))",
             expect![[r#"
 Root@0..14
-  LParen@0..1 "("
-  LParen@1..2 "("
-  LParen@2..3 "("
-  LParen@3..4 "("
-  LParen@4..5 "("
-  LParen@5..6 "("
-  Number@6..8 "10"
-  RParen@8..9 ")"
-  RParen@9..10 ")"
-  RParen@10..11 ")"
-  RParen@11..12 ")"
-  RParen@12..13 ")"
-  RParen@13..14 ")""#]],
+  ParenExpr@0..14
+    LParen@0..1 "("
+    ParenExpr@1..13
+      LParen@1..2 "("
+      ParenExpr@2..12
+        LParen@2..3 "("
+        ParenExpr@3..11
+          LParen@3..4 "("
+          ParenExpr@4..10
+            LParen@4..5 "("
+            ParenExpr@5..9
+              LParen@5..6 "("
+              Literal@6..8
+                Number@6..8 "10"
+              RParen@8..9 ")"
+            RParen@9..10 ")"
+          RParen@10..11 ")"
+        RParen@11..12 ")"
+      RParen@12..13 ")"
+    RParen@13..14 ")""#]],
         );
     }
 
@@ -197,14 +237,18 @@ Root@0..14
             expect![[r#"
 Root@0..7
   BinaryExpr@0..7
-    Number@0..1 "5"
+    Literal@0..1
+      Number@0..1 "5"
     Star@1..2 "*"
-    LParen@2..3 "("
-    BinaryExpr@3..6
-      Number@3..4 "2"
-      Plus@4..5 "+"
-      Number@5..6 "1"
-    RParen@6..7 ")""#]],
+    ParenExpr@2..7
+      LParen@2..3 "("
+      BinaryExpr@3..6
+        Literal@3..4
+          Number@3..4 "2"
+        Plus@4..5 "+"
+        Literal@5..6
+          Number@5..6 "1"
+      RParen@6..7 ")""#]],
         );
     }
 
@@ -215,7 +259,8 @@ Root@0..7
             expect![[r#"
 Root@0..7
   Whitespace@0..3 "   "
-  Number@3..7 "9876""#]],
+  Literal@3..7
+    Number@3..7 "9876""#]],
         );
     }
 
@@ -225,8 +270,9 @@ Root@0..7
             "999   ",
             expect![[r#"
 Root@0..6
-  Number@0..3 "999"
-  Whitespace@3..6 "   ""#]],
+  Literal@0..6
+    Number@0..3 "999"
+    Whitespace@3..6 "   ""#]],
         );
     }
 
@@ -237,9 +283,10 @@ Root@0..6
             expect![[r#"
 Root@0..8
   Whitespace@0..1 " "
-  Number@1..4 "123"
-  Whitespace@4..8 "    ""#]]
-        )
+  Literal@1..8
+    Number@1..4 "123"
+    Whitespace@4..8 "    ""#]],
+        );
     }
 
     #[test]
@@ -247,19 +294,22 @@ Root@0..8
         check(
             " 1 +   2* 3 ",
             expect![[r#"
-                Root@0..12
-                  Whitespace@0..1 " "
-                  BinaryExpr@1..12
-                    Number@1..2 "1"
-                    Whitespace@2..3 " "
-                    Plus@3..4 "+"
-                    Whitespace@4..7 "   "
-                    BinaryExpr@7..12
-                      Number@7..8 "2"
-                      Star@8..9 "*"
-                      Whitespace@9..10 " "
-                      Number@10..11 "3"
-                      Whitespace@11..12 " ""#]]
-        )
+Root@0..12
+  Whitespace@0..1 " "
+  BinaryExpr@1..12
+    Literal@1..3
+      Number@1..2 "1"
+      Whitespace@2..3 " "
+    Plus@3..4 "+"
+    Whitespace@4..7 "   "
+    BinaryExpr@7..12
+      Literal@7..8
+        Number@7..8 "2"
+      Star@8..9 "*"
+      Whitespace@9..10 " "
+      Literal@10..12
+        Number@10..11 "3"
+        Whitespace@11..12 " ""#]],
+        );
     }
 }

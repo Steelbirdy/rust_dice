@@ -1,5 +1,6 @@
 mod event;
 mod expr;
+mod marker;
 mod sink;
 mod source;
 
@@ -7,6 +8,7 @@ use crate::lexer::{Lexeme, Lexer, SyntaxKind};
 use crate::syntax::SyntaxNode;
 use event::Event;
 use expr::expr;
+use marker::Marker;
 use sink::Sink;
 use source::Source;
 use rowan::GreenNode;
@@ -38,11 +40,18 @@ impl<'l, 'input> Parser<'l, 'input> {
     }
 
     pub fn parse(mut self) -> Vec<Event<'input>> {
-        self.start_node(SyntaxKind::Root);
+        let m = self.start();
         expr(&mut self);
-        self.finish_node();
+        m.complete(&mut self, SyntaxKind::Root);
 
         self.events
+    }
+
+    fn start(&mut self) -> Marker {
+        let pos = self.events.len();
+        self.events.push(Event::Placeholder);
+
+        Marker::new(pos)
     }
 
     fn peek(&mut self) -> Option<SyntaxKind> {
@@ -53,22 +62,6 @@ impl<'l, 'input> Parser<'l, 'input> {
         let Lexeme { kind, text } = self.source.next_lexeme().unwrap();
 
         self.events.push(Event::AddToken { kind: *kind, text });
-    }
-
-    fn start_node(&mut self, kind: SyntaxKind) {
-        self.events.push(Event::StartNode { kind });
-    }
-
-    fn start_node_at(&mut self, checkpoint: usize, kind: SyntaxKind) {
-        self.events.push(Event::StartNodeAt { kind, checkpoint });
-    }
-
-    fn checkpoint(&self) -> usize {
-        self.events.len()
-    }
-
-    fn finish_node(&mut self) {
-        self.events.push(Event::FinishNode);
     }
 }
 
