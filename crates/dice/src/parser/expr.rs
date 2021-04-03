@@ -2,18 +2,30 @@ use super::Parser;
 use crate::lexer::SyntaxKind;
 
 
-enum Op {
+enum InfixOp {
     Add,
     Sub,
     Mul,
     Div,
 }
 
-impl Op {
+impl InfixOp {
     fn binding_power(&self) -> (u8, u8) {
         match self {
             Self::Add | Self::Sub => (1, 2),
             Self::Mul | Self::Div => (3, 4),
+        }
+    }
+}
+
+enum PrefixOp {
+    Neg,
+}
+
+impl PrefixOp {
+    fn binding_power(&self) -> ((), u8) {
+        match self {
+            Self::Neg => ((), 5),
         }
     }
 }
@@ -28,14 +40,32 @@ fn expr_binding_power(p: &mut Parser, minimum_binding_power: u8) {
 
     match p.peek() {
         Some(SyntaxKind::Number) => p.bump(),
+        Some(SyntaxKind::Minus) => {
+            let op = PrefixOp::Neg;
+            let ((), right_binding_power) = op.binding_power();
+
+            // Eat the operator's token.
+            p.bump();
+
+            p.start_node_at(checkpoint, SyntaxKind::PrefixExpr);
+            expr_binding_power(p, right_binding_power);
+            p.finish_node();
+        }
+        Some(SyntaxKind::LParen) => {
+            p.bump();
+            expr_binding_power(p, 0);
+
+            assert_eq!(p.peek(), Some(SyntaxKind::RParen));
+            p.bump();
+        },
         _ => {}
     }
 
     let op = match p.peek() {
-        Some(SyntaxKind::Plus) => Op::Add,
-        Some(SyntaxKind::Minus) => Op::Sub,
-        Some(SyntaxKind::Star) => Op::Mul,
-        Some(SyntaxKind::Slash) => Op::Div,
+        Some(SyntaxKind::Plus) => InfixOp::Add,
+        Some(SyntaxKind::Minus) => InfixOp::Sub,
+        Some(SyntaxKind::Star) => InfixOp::Mul,
+        Some(SyntaxKind::Slash) => InfixOp::Div,
         _ => return,  // TODO: handle errors
     };
 
@@ -48,7 +78,7 @@ fn expr_binding_power(p: &mut Parser, minimum_binding_power: u8) {
     // Eat the operator's token.
     p.bump();
 
-    p.start_node_at(checkpoint, SyntaxKind::BinOp);
+    p.start_node_at(checkpoint, SyntaxKind::BinaryExpr);
     expr_binding_power(p, right_binding_power);
     p.finish_node();
 }
@@ -75,7 +105,7 @@ Root@0..3
             "1+2",
             expect![[r#"
 Root@0..3
-  BinOp@0..3
+  BinaryExpr@0..3
     Number@0..1 "1"
     Plus@1..2 "+"
     Number@2..3 "2""#]],
@@ -88,7 +118,7 @@ Root@0..3
             "1+2+3+4",
             expect![[r#"
                 Root@0..3
-                  BinOp@0..3
+                  BinaryExpr@0..3
                     Number@0..1 "1"
                     Plus@1..2 "+"
                     Number@2..3 "2""#]],
@@ -101,13 +131,80 @@ Root@0..3
             "1+2*3-4",
             expect![[r#"
                 Root@0..5
-                  BinOp@0..5
+                  BinaryExpr@0..5
                     Number@0..1 "1"
                     Plus@1..2 "+"
-                    BinOp@2..5
+                    BinaryExpr@2..5
                       Number@2..3 "2"
                       Star@3..4 "*"
                       Number@4..5 "3""#]],
+        );
+    }
+
+    #[test]
+    fn parse_negation() {
+        check(
+            "-10",
+            expect![[r#"
+Root@0..3
+  PrefixExpr@0..3
+    Minus@0..1 "-"
+    Number@1..3 "10""#]],
+        );
+    }
+
+    #[test]
+    fn negation_has_higher_binding_power_than_infix_operators() {
+        check(
+            "-20+20",
+            expect![[r#"
+Root@0..6
+  BinaryExpr@0..6
+    PrefixExpr@0..3
+      Minus@0..1 "-"
+      Number@1..3 "20"
+    Plus@3..4 "+"
+    Number@4..6 "20""#]],
+        );
+    }
+
+    #[test]
+    fn parse_nested_parentheses() {
+        check(
+            "((((((10))))))",
+            expect![[r#"
+Root@0..14
+  LParen@0..1 "("
+  LParen@1..2 "("
+  LParen@2..3 "("
+  LParen@3..4 "("
+  LParen@4..5 "("
+  LParen@5..6 "("
+  Number@6..8 "10"
+  RParen@8..9 ")"
+  RParen@9..10 ")"
+  RParen@10..11 ")"
+  RParen@11..12 ")"
+  RParen@12..13 ")"
+  RParen@13..14 ")""#]],
+        );
+    }
+
+    #[test]
+    fn parentheses_affect_precedence() {
+        check(
+            "5*(2+1)",
+            expect![[r#"
+Root@0..7
+  BinaryExpr@0..7
+    Number@0..1 "5"
+    Star@1..2 "*"
+    LParen@2..3 "("
+    BinaryExpr@3..6
+      Number@3..4 "2"
+      Plus@4..5 "+"
+      Number@5..6 "1"
+    RParen@6..7 ")""#]],
         );
     }
 }
