@@ -2,7 +2,7 @@ use syntax::SyntaxKind;
 
 
 #[derive(Debug, Clone, PartialEq)]
-pub(super) enum Event {
+pub enum Event {
     StartNode { kind: SyntaxKind, forward_parent: Option<usize> },
     AddToken,
     FinishNode,

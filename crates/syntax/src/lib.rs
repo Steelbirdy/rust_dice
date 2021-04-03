@@ -4,7 +4,7 @@ use num_traits::{FromPrimitive, ToPrimitive};
 
 
 #[derive(Debug, Copy, Clone, PartialEq, FromPrimitive, ToPrimitive)]
-pub(crate) enum SyntaxKind {
+pub enum SyntaxKind {
     Whitespace,
     Dice,
     Number,
@@ -37,7 +37,7 @@ pub(crate) enum SyntaxKind {
 }
 
 impl SyntaxKind {
-    pub(crate) fn is_trivia(self) -> bool {
+    pub fn is_trivia(self) -> bool {
         matches!(self, Self::Whitespace)
     }
 }
@@ -74,11 +74,11 @@ impl From<TokenKind> for SyntaxKind {
 }
 
 
-pub(crate) type SyntaxNode = rowan::SyntaxNode<DiceLanguage>;
+pub type SyntaxNode = rowan::SyntaxNode<DiceLanguage>;
 
 
 #[derive(Debug, Copy, Clone, Ord, PartialOrd, Eq, PartialEq, Hash)]
-pub(crate) enum DiceLanguage {}
+pub enum DiceLanguage {}
 
 impl rowan::Language for DiceLanguage {
     type Kind = SyntaxKind;

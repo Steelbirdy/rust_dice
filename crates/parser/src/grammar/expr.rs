@@ -1,6 +1,4 @@
-use super::Parser;
-use super::marker::CompletedMarker;
-use syntax::SyntaxKind;
+use super::*;
 
 
 enum BinaryOp {
@@ -121,8 +119,9 @@ fn paren_expr(p: &mut Parser) -> CompletedMarker {
 
 #[cfg(test)]
 mod tests {
-    use super::super::check;
+    use crate::check;
     use expect_test::expect;
+
 
     #[test]
     fn parse_number() {
