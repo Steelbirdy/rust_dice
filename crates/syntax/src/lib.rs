@@ -40,6 +40,27 @@ pub enum SyntaxKind {
     SetOp,
 }
 
+impl SyntaxKind {
+    pub const SET_OPERATORS: &'static [Self; 8] = &[
+        Self::Keep,
+        Self::Drop,
+        Self::Reroll,
+        Self::RerollOnce,
+        Self::RerollAdd,
+        Self::Explode,
+        Self::Min,
+        Self::Max,
+    ];
+
+    pub const SET_SELECTORS: &'static [Self; 5] = &[
+        Self::Number,
+        Self::Highest,
+        Self::Lowest,
+        Self::Greater,
+        Self::Less,
+    ];
+}
+
 impl From<TokenKind> for SyntaxKind {
     fn from(token_kind: TokenKind) -> Self {
         match token_kind {

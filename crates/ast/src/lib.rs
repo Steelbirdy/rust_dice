@@ -2,6 +2,24 @@ use syntax::{SyntaxElement, SyntaxKind, SyntaxNode, SyntaxToken};
 
 
 #[derive(Debug)]
+pub struct Root(SyntaxNode);
+
+impl Root {
+    pub fn cast(node: SyntaxNode) -> Option<Self> {
+        if node.kind() == SyntaxKind::Root {
+            Some(Self(node))
+        } else {
+            None
+        }
+    }
+
+    pub fn expr(&self) -> Option<Expr> {
+        self.0.children().find_map(Expr::cast)
+    }
+}
+
+
+#[derive(Debug)]
 pub enum Expr {
     BinaryExpr(BinaryExpr),
     Dice(Dice),
@@ -55,6 +73,22 @@ impl BinaryExpr {
 #[derive(Debug)]
 pub struct Dice(SyntaxNode);
 
+impl Dice {
+    pub fn count(&self) -> u64 {
+        self.0.first_token().unwrap().text().split("d").nth(0).unwrap().parse().unwrap()
+    }
+
+    pub fn sides(&self) -> u64 {
+        self.0.first_token().unwrap().text().split("d").nth(1).unwrap().parse().unwrap()
+    }
+
+    pub fn ops(&self) -> impl Iterator<Item=SetOp> {
+        self.0.children()
+            .filter(|node| node.kind() == SyntaxKind::SetOp)
+            .map(SetOp)
+    }
+}
+
 
 #[derive(Debug)]
 pub struct Literal(SyntaxNode);
@@ -79,6 +113,19 @@ impl ParenExpr {
 #[derive(Debug)]
 pub struct Set(SyntaxNode);
 
+impl Set {
+    pub fn items(&self) -> impl Iterator<Item=Expr> {
+        self.0.children()
+            .filter_map(Expr::cast)
+    }
+
+    pub fn ops(&self) -> impl Iterator<Item=SetOp> {
+        self.0.children()
+            .filter(|node| node.kind() == SyntaxKind::SetOp)
+            .map(SetOp)
+    }
+}
+
 
 #[derive(Debug)]
 pub struct UnaryExpr(SyntaxNode);
@@ -98,18 +145,29 @@ impl UnaryExpr {
 
 
 #[derive(Debug)]
-pub struct Root(SyntaxNode);
+pub struct SetOp(SyntaxNode);
 
-impl Root {
-    pub fn cast(node: SyntaxNode) -> Option<Self> {
-        if node.kind() == SyntaxKind::Root {
-            Some(Self(node))
-        } else {
-            None
-        }
+impl SetOp {
+    pub fn op(&self) -> Option<SyntaxToken> {
+        self.0
+            .children_with_tokens()
+            .filter_map(SyntaxElement::into_token)
+            .find(|token| SyntaxKind::SET_OPERATORS.contains(&token.kind()))
     }
 
-    pub fn expr(&self) -> Option<Expr> {
-        self.0.children().find_map(Expr::cast)
+    pub fn sel(&self) -> Option<SyntaxToken> {
+        self.0
+            .children_with_tokens()
+            .filter_map(SyntaxElement::into_token)
+            .find(|token| SyntaxKind::SET_SELECTORS.contains(&token.kind()))
+    }
+
+    pub fn num(&self) -> Option<usize> {
+        self.0
+            .children_with_tokens()
+            .filter_map(SyntaxElement::into_token)
+            .filter(|token| token.kind() == SyntaxKind::Number)
+            .nth(1)
+            .map(|n| n.text().parse().unwrap())
     }
 }
