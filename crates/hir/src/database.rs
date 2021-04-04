@@ -272,4 +272,36 @@ mod tests {
             Database { exprs },
         );
     }
+
+    #[test]
+    fn lower_binary_expr_without_rhs() {
+        let mut exprs = Arena::new();
+        let lhs = exprs.alloc(Expr::Literal { n: 10 });
+        let rhs = exprs.alloc(Expr::Missing);
+
+        check_expr(
+            "10 -",
+            Expr::Binary {
+                lhs,
+                rhs,
+                op: BinaryOp::Sub,
+            },
+            Database { exprs },
+        );
+    }
+
+    #[test]
+    fn lower_unary_expr_without_expr() {
+        let mut exprs = Arena::new();
+        let expr = exprs.alloc(Expr::Missing);
+
+        check_expr(
+            "-",
+            Expr::Unary {
+                expr,
+                op: UnaryOp::Neg,
+            },
+            Database { exprs },
+        );
+    }
 }
