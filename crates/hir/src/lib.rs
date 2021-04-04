@@ -13,7 +13,7 @@ pub fn lower(ast: ast::Root) -> (Database, Expr) {
 }
 
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum Expr {
     Missing,
     Binary { op: BinaryOp, lhs: ExprIdx, rhs: ExprIdx },
@@ -24,7 +24,7 @@ pub enum Expr {
 }
 
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum BinaryOp {
     Add,
     Sub,
@@ -33,7 +33,7 @@ pub enum BinaryOp {
 }
 
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum UnaryOp {
     Neg,
 }
@@ -42,7 +42,7 @@ pub enum UnaryOp {
 pub type SetOperation = (SetOp, SetSel, u64);
 
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum SetOp {
     Keep,
     Drop,
@@ -55,7 +55,7 @@ pub enum SetOp {
 }
 
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum SetSel {
     Number,
     Highest,
