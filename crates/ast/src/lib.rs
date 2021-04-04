@@ -75,11 +75,11 @@ pub struct Dice(SyntaxNode);
 
 impl Dice {
     pub fn count(&self) -> u64 {
-        self.0.first_token().unwrap().text().split("d").nth(0).unwrap().parse().unwrap()
+        self.0.first_token().unwrap().text().split('d').next().unwrap().parse().unwrap()
     }
 
     pub fn sides(&self) -> u64 {
-        self.0.first_token().unwrap().text().split("d").nth(1).unwrap().parse().unwrap()
+        self.0.first_token().unwrap().text().split('d').nth(1).unwrap().parse().unwrap()
     }
 
     pub fn ops(&self) -> impl Iterator<Item=SetOp> {
