@@ -162,12 +162,14 @@ impl SetOp {
             .find(|token| SyntaxKind::SET_SELECTORS.contains(&token.kind()))
     }
 
-    pub fn num(&self) -> Option<usize> {
+    pub fn num(&self) -> u64 {
         self.0
-            .children_with_tokens()
-            .filter_map(SyntaxElement::into_token)
-            .filter(|token| token.kind() == SyntaxKind::Number)
-            .nth(1)
-            .map(|n| n.text().parse().unwrap())
+            .last_child()
+            .unwrap()
+            .first_token()
+            .unwrap()
+            .text()
+            .parse()
+            .unwrap()
     }
 }

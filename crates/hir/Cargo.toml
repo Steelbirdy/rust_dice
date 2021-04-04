@@ -1,5 +1,5 @@
 [package]
-name = "dice"
+name = "hir"
 version = "0.1.0"
 authors = ["Steelbirdy <patrickammons@comcast.net>"]
 edition = "2018"
@@ -8,5 +8,5 @@ edition = "2018"
 
 [dependencies]
 ast = { path = "../ast" }
-hir = { path = "../hir" }
-parser = { path = "../parser" }
+syntax = { path = "../syntax" }
+la-arena = "0.2.0"

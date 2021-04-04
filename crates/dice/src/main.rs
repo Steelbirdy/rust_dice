@@ -21,6 +21,8 @@ fn main() -> io::Result<()> {
 
         dbg!(root.expr());
 
+        dbg!(hir::lower(root));
+
         input.clear();
     }
 }
