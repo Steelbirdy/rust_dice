@@ -126,8 +126,8 @@ mod tests {
     #[test]
     fn lower_binary_expr() {
         let mut exprs = Arena::new();
-        let lhs = exprs.alloc(Expr::Literal { n: 1 });
-        let rhs = exprs.alloc(Expr::Literal { n: 2 });
+        let lhs = exprs.alloc(Expr::Literal { n: Some(1) });
+        let rhs = exprs.alloc(Expr::Literal { n: Some(2) });
 
         check_expr(
             "1 + 2",
@@ -203,7 +203,7 @@ mod tests {
     fn lower_literal() {
         check_expr(
             "999",
-            Expr::Literal { n: 999 },
+            Expr::Literal { n: Some(999) },
             Database::default(),
         );
     }
@@ -219,7 +219,7 @@ mod tests {
 
     #[test]
     fn lower_singleton_set() {
-        let inner = Expr::Literal { n: 2 };
+        let inner = Expr::Literal { n: Some(2) };
 
         check_expr(
             "(2,)",
@@ -232,9 +232,9 @@ mod tests {
     fn lower_set() {
         let mut exprs = Arena::new();
         let items = vec![
-            Expr::Unary { expr: exprs.alloc(Expr::Literal { n: 10 }), op: UnaryOp::Neg },
+            Expr::Unary { expr: exprs.alloc(Expr::Literal { n: Some(10) }), op: UnaryOp::Neg },
             Expr::Dice { count: 8, sides: 6, ops: Vec::new() },
-            Expr::Literal { n: 3 },
+            Expr::Literal { n: Some(3) },
         ];
 
         check_expr(
@@ -247,7 +247,7 @@ mod tests {
     #[test]
     fn lower_set_with_ops() {
         let items = vec![
-            Expr::Literal { n: 100, },
+            Expr::Literal { n: Some(100), },
             Expr::Dice { count: 2, sides: 100, ops: Vec::new() },
         ];
 
@@ -276,7 +276,7 @@ mod tests {
     #[test]
     fn lower_binary_expr_without_rhs() {
         let mut exprs = Arena::new();
-        let lhs = exprs.alloc(Expr::Literal { n: 10 });
+        let lhs = exprs.alloc(Expr::Literal { n: Some(10) });
         let rhs = exprs.alloc(Expr::Missing);
 
         check_expr(

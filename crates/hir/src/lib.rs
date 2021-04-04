@@ -18,7 +18,10 @@ pub enum Expr {
     Missing,
     Binary { op: BinaryOp, lhs: ExprIdx, rhs: ExprIdx },
     Dice { count: u64, sides: u64, ops: Vec<SetOperation> },
-    Literal { n: u64 },
+    Literal {
+        // is `None` if the number is too big to fit in a u64
+        n: Option<u64>
+    },
     Set { items: Vec<Self>, ops: Vec<SetOperation> },
     Unary { op: UnaryOp, expr: ExprIdx },
 }
