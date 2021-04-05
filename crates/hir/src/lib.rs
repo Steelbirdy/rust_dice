@@ -16,18 +16,28 @@ pub fn lower(ast: ast::Root) -> (Database, Expr) {
 #[derive(Debug, PartialEq)]
 pub enum Expr {
     Missing,
-    Binary { op: BinaryOp, lhs: ExprIdx, rhs: ExprIdx },
+    Binary {
+        op: BinaryOp,
+        lhs: ExprIdx,
+        rhs: ExprIdx,
+    },
     Dice {
         count: Option<u64>,
         sides: Option<u64>,
-        ops: Vec<SetOperation>
+        ops: Vec<SetOperation>,
     },
     Literal {
         // is `None` if the number is too big to fit in a u64
-        n: Option<u64>
+        n: Option<u64>,
     },
-    Set { items: Vec<Self>, ops: Vec<SetOperation> },
-    Unary { op: UnaryOp, expr: ExprIdx },
+    Set {
+        items: Vec<Self>,
+        ops: Vec<SetOperation>,
+    },
+    Unary {
+        op: UnaryOp,
+        expr: ExprIdx,
+    },
 }
 
 
