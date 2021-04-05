@@ -2,7 +2,7 @@ mod database;
 pub use database::Database;
 
 use la_arena::Idx;
-type ExprIdx = Idx<Expr>;
+pub type ExprIdx = Idx<Expr>;
 
 
 pub fn lower(ast: ast::Root) -> (Database, Expr) {
@@ -41,7 +41,7 @@ pub enum Expr {
 }
 
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, Copy, Clone, PartialEq)]
 pub enum BinaryOp {
     Add,
     Sub,
@@ -50,7 +50,7 @@ pub enum BinaryOp {
 }
 
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, Copy, Clone, PartialEq)]
 pub enum UnaryOp {
     Neg,
 }
@@ -59,7 +59,7 @@ pub enum UnaryOp {
 pub type SetOperation = (SetOp, SetSel, Option<u64>);
 
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, Copy, Clone, PartialEq)]
 pub enum SetOp {
     Keep,
     Drop,
@@ -72,7 +72,7 @@ pub enum SetOp {
 }
 
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, Copy, Clone, PartialEq)]
 pub enum SetSel {
     Number,
     Highest,

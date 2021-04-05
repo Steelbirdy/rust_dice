@@ -1,6 +1,7 @@
-use crate::{BinaryOp, Expr, SetOperation, SetOp, SetSel, UnaryOp};
+use crate::{BinaryOp, Expr, ExprIdx, SetOperation, SetOp, SetSel, UnaryOp};
 use la_arena::Arena;
 use syntax::SyntaxKind;
+use std::ops::Index;
 
 
 #[derive(Debug, PartialEq, Default)]
@@ -9,6 +10,10 @@ pub struct Database {
 }
 
 impl Database {
+    pub fn get(&self, idx: ExprIdx) -> &Expr {
+        self.exprs.index(idx)
+    }
+
     pub(crate) fn lower_expr(&mut self, ast: Option<ast::Expr>) -> Expr {
         if let Some(ast) = ast {
             match ast {
