@@ -128,4 +128,20 @@ mod tests {
             &[(ValidationErrorKind::NumberTooLarge, (8..28))],
         );
     }
+
+    #[test]
+    fn validate_too_large_set_elements() {
+        check(
+            "(99999999999999999999, 2)",
+            &[(ValidationErrorKind::NumberTooLarge, (1..21))],
+        );
+    }
+
+    #[test]
+    fn validate_too_large_set_op_num() {
+        check(
+            "(1,2,3)e99999999999999999999",
+            &[(ValidationErrorKind::NumberTooLarge, (8..28))],
+        );
+    }
 }
