@@ -21,14 +21,14 @@ impl fmt::Display for ValidationError {
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum ValidationErrorKind {
-    NumberLiteralTooLarge,
+    NumberTooLarge,
 }
 
 impl fmt::Display for ValidationErrorKind {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Self::NumberLiteralTooLarge => write!(f,
-                                                  "number literal is larger than an integer's maximum value, {}", u64::MAX),
+            Self::NumberTooLarge => write!(f,
+                                           "number is larger than an integer's maximum value, {}", u64::MAX),
         }
     }
 }

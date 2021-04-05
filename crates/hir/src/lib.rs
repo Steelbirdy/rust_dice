@@ -17,7 +17,11 @@ pub fn lower(ast: ast::Root) -> (Database, Expr) {
 pub enum Expr {
     Missing,
     Binary { op: BinaryOp, lhs: ExprIdx, rhs: ExprIdx },
-    Dice { count: u64, sides: u64, ops: Vec<SetOperation> },
+    Dice {
+        count: Option<u64>,
+        sides: Option<u64>,
+        ops: Vec<SetOperation>
+    },
     Literal {
         // is `None` if the number is too big to fit in a u64
         n: Option<u64>
@@ -42,7 +46,7 @@ pub enum UnaryOp {
 }
 
 
-pub type SetOperation = (SetOp, SetSel, u64);
+pub type SetOperation = (SetOp, SetSel, Option<u64>);
 
 
 #[derive(Debug, PartialEq)]

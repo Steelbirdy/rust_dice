@@ -144,7 +144,7 @@ mod tests {
     fn lower_dice_no_ops() {
         check_expr(
             "1d12",
-            Expr::Dice { count: 1, sides: 12, ops: Vec::new() },
+            Expr::Dice { count: Some(1), sides: Some(12), ops: Vec::new() },
             Database::default(),
         );
     }
@@ -153,7 +153,7 @@ mod tests {
     fn lower_dice_implicit_count() {
         check_expr(
             "d20",
-            Expr::Dice { count: 1, sides: 20, ops: Vec::new() },
+            Expr::Dice { count: Some(1), sides: Some(20), ops: Vec::new() },
             Database::default(),
         );
     }
@@ -162,7 +162,7 @@ mod tests {
     fn lower_percentage_dice() {
         check_expr(
             "3d%",
-            Expr::Dice { count: 3, sides: 100, ops: Vec::new() },
+            Expr::Dice { count: Some(3), sides: Some(100), ops: Vec::new() },
             Database::default(),
         );
     }
@@ -172,10 +172,10 @@ mod tests {
         check_expr(
             "2d20kh1",
             Expr::Dice {
-                count: 2,
-                sides: 20,
+                count: Some(2),
+                sides: Some(20),
                 ops: vec![
-                    (SetOp::Keep, SetSel::Highest, 1),
+                    (SetOp::Keep, SetSel::Highest, Some(1)),
                 ],
             },
             Database::default(),
@@ -187,12 +187,12 @@ mod tests {
         check_expr(
             "2d20pl1ro<2e5",
             Expr::Dice {
-                count: 2,
-                sides: 20,
+                count: Some(2),
+                sides: Some(20),
                 ops: vec![
-                    (SetOp::Drop, SetSel::Lowest, 1),
-                    (SetOp::RerollOnce, SetSel::Less, 2),
-                    (SetOp::Explode, SetSel::Number, 5),
+                    (SetOp::Drop, SetSel::Lowest, Some(1)),
+                    (SetOp::RerollOnce, SetSel::Less, Some(2)),
+                    (SetOp::Explode, SetSel::Number, Some(5)),
                 ],
             },
             Database::default(),
@@ -233,7 +233,7 @@ mod tests {
         let mut exprs = Arena::new();
         let items = vec![
             Expr::Unary { expr: exprs.alloc(Expr::Literal { n: Some(10) }), op: UnaryOp::Neg },
-            Expr::Dice { count: 8, sides: 6, ops: Vec::new() },
+            Expr::Dice { count: Some(8), sides: Some(6), ops: Vec::new() },
             Expr::Literal { n: Some(3) },
         ];
 
@@ -248,12 +248,12 @@ mod tests {
     fn lower_set_with_ops() {
         let items = vec![
             Expr::Literal { n: Some(100), },
-            Expr::Dice { count: 2, sides: 100, ops: Vec::new() },
+            Expr::Dice { count: Some(2), sides: Some(100), ops: Vec::new() },
         ];
 
         check_expr(
             "(100, 2d100)e100",
-            Expr::Set { items, ops: vec![(SetOp::Explode, SetSel::Number, 100)] },
+            Expr::Set { items, ops: vec![(SetOp::Explode, SetSel::Number, Some(100))] },
             Database::default(),
         );
     }
@@ -261,7 +261,7 @@ mod tests {
     #[test]
     fn lower_unary_expr() {
         let mut exprs = Arena::new();
-        let inner = exprs.alloc(Expr::Dice { count: 3, sides: 4, ops: Vec::new() });
+        let inner = exprs.alloc(Expr::Dice { count: Some(3), sides: Some(4), ops: Vec::new() });
 
         check_expr(
             "-3d4",

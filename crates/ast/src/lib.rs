@@ -77,26 +77,34 @@ impl BinaryExpr {
 pub struct Dice(SyntaxNode);
 
 impl Dice {
-    pub fn count(&self) -> u64 {
+    pub fn cast(node: &SyntaxNode) -> Option<Self> {
+        if node.kind() == SyntaxKind::DiceExpr {
+            Some(Self(node.clone()))
+        } else {
+            None
+        }
+    }
+
+    pub fn count(&self) -> Option<u64> {
         let split_text = self.0.first_token().unwrap();
         let mut split_text = split_text.text().split('d');
         let explicit_count = split_text.clone().filter(|s| !s.is_empty()).count() == 2;
 
         if explicit_count {
-            split_text.next().unwrap().parse().unwrap()
+            split_text.next().unwrap().parse().ok()
         } else {
-            1
+            Some(1)
         }
     }
 
-    pub fn sides(&self) -> u64 {
+    pub fn sides(&self) -> Option<u64> {
         let sides_text = self.0.first_token().unwrap();
         let sides_text = sides_text.text().split('d').last().unwrap();
 
         if sides_text == "%" {
-            100
+            Some(100)
         } else {
-            sides_text.parse().unwrap()
+            sides_text.parse().ok()
         }
     }
 
@@ -112,9 +120,9 @@ impl Dice {
 pub struct Literal(SyntaxNode);
 
 impl Literal {
-    pub fn cast(node: SyntaxNode) -> Option<Self> {
+    pub fn cast(node: &SyntaxNode) -> Option<Self> {
         if node.kind() == SyntaxKind::Literal {
-            Some(Self(node))
+            Some(Self(node.clone()))
         } else {
             None
         }
@@ -174,6 +182,14 @@ impl UnaryExpr {
 pub struct SetOp(SyntaxNode);
 
 impl SetOp {
+    pub fn cast(node: &SyntaxNode) -> Option<Self> {
+        if node.kind() == SyntaxKind::SetOp {
+            Some(Self(node.clone()))
+        } else {
+            None
+        }
+    }
+
     pub fn op(&self) -> Option<SyntaxToken> {
         self.0
             .children_with_tokens()
@@ -188,7 +204,7 @@ impl SetOp {
             .find(|token| SyntaxKind::SET_SELECTORS.contains(&token.kind()))
     }
 
-    pub fn num(&self) -> u64 {
+    pub fn num(&self) -> Option<u64> {
         self.0
             .last_child()
             .unwrap()
@@ -196,6 +212,6 @@ impl SetOp {
             .unwrap()
             .text()
             .parse()
-            .unwrap()
+            .ok()
     }
 }
