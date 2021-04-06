@@ -1,8 +1,8 @@
 mod database;
-pub(crate) use database::{Database, ExprIdx};
 mod total;
-pub(crate) use total::Total;
 
+pub(crate) use database::{Database, ExprIdx};
+pub(crate) use total::Total;
 use hir::{BinaryOp, SetOp, SetSel, UnaryOp};
 
 
@@ -35,13 +35,25 @@ impl Expression {
     }
 
     #[allow(non_snake_case)]
-    fn Dice(sides: u64, values: Vec<ExprIdx>, ops: Vec<SetOperation>) -> Self {
-        Self::new(ExprKind::Dice(Dice::new_fixed(sides, values, ops)))
+    fn Dice(count: u64, sides: u64, ops: Vec<SetOperation>) -> Self {
+        let res = Dice {
+            count,
+            sides,
+            values: Vec::new(),
+            operations: ops,
+        };
+
+        Self::new(ExprKind::Dice(res))
     }
 
     #[allow(non_snake_case)]
     fn Die(sides: u64, value: ExprIdx) -> Self {
-        Self::new(ExprKind::Die(Die::new_fixed(sides, value)))
+        let res = Die {
+            sides,
+            values: vec![value],
+        };
+
+        Self::new(ExprKind::Die(res))
     }
 
     #[allow(non_snake_case)]
@@ -88,32 +100,11 @@ struct Dice {
     operations: Vec<SetOperation>,
 }
 
-impl Dice {
-    fn new_fixed(sides: u64, values: Vec<ExprIdx>, operations: Vec<SetOperation>) -> Self {
-        let count = values.len() as u64;
-        Self {
-            count,
-            sides,
-            values,
-            operations,
-        }
-    }
-}
-
 
 #[derive(Debug, PartialEq)]
 struct Die {
     sides: u64,
     values: Vec<ExprIdx>,
-}
-
-impl Die {
-    fn new_fixed(sides: u64, value: ExprIdx) -> Self {
-        Self {
-            sides,
-            values: vec![value],
-        }
-    }
 }
 
 

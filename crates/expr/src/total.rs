@@ -108,7 +108,7 @@ mod tests {
         ast::Root::cast(parser::parse(input).syntax()).unwrap()
     }
 
-    fn build_dice(sides: u64, values: &[u64]) -> (Expression, Database) {
+    fn build_dice(sides: u64, values: Vec<u64>) -> (Expression, Database) {
         let mut db = Database::default();
         let mut res = Vec::new();
 
@@ -118,7 +118,13 @@ mod tests {
             res.push(tmp);
         }
 
-        let dice = Expression::Dice(sides, res, Vec::new());
+        let dice = Dice {
+            count: values.len() as u64,
+            sides,
+            values: res,
+            operations: vec![],
+        };
+        let dice = Expression::new(ExprKind::Dice(dice));
         (dice, db)
     }
 
@@ -151,8 +157,8 @@ mod tests {
 
     #[test]
     fn total_dice() {
-        let values = [1, 5, 8, 3, 4];
-        let (dice, db) = build_dice(8, &values);
+        let values = vec![1, 5, 8, 3, 4];
+        let (dice, db) = build_dice(8, values.clone());
 
         check_total(
             dice,
@@ -178,8 +184,7 @@ mod tests {
 
     #[test]
     fn total_binary_expr() {
-        let rolls: [u64; 3] = [18, 4, 11];
-        let (lhs, mut db) = build_dice(20, &rolls);
+        let (lhs, mut db) = build_dice(20, vec![18, 4, 11]);
 
         let lhs = db.alloc(lhs);
         let rhs = db.alloc(Expression::Literal(5));
