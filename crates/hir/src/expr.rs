@@ -125,6 +125,12 @@ impl Dice {
             Self { count, sides, values: Vec::new(), ops }  // TODO: Passing the buck
         }
     }
+
+    fn roll_another(&mut self, db: &mut Database) {
+        let die = Die::roll_new(self.sides.unwrap(), db);  // TODO
+
+        self.values.push(die);
+    }
 }
 
 impl Total for Dice {
@@ -147,6 +153,46 @@ impl Die {
     fn new(sides: u64, value: ExprIdx) -> Self {
         Self { sides, values: vec![value] }
     }
+
+    fn roll_new(sides: u64, db: &mut Database) -> Self {
+        let value = Expr::literal(Some(db.roll(sides)));
+        let value = db.alloc(Expression::new(value));
+
+        Self { sides, values: vec![value] }
+    }
+
+    fn reroll(&mut self, db: &mut Database) {
+        self.values.pop();
+
+        self.add_roll(db);
+    }
+
+    fn explode(&mut self, db: &mut Database) {
+        let expr = self.values.last().map(|idx| db.get_mut(*idx));
+
+        if let Some(Expression { expr: Expr::Literal(literal), .. }) = expr {
+            literal.explode();
+        } else if expr.is_some() {
+            unreachable!();
+        }
+    }
+
+    fn force_value(&mut self, value: u64, db: &mut Database) {
+        let expr = self.values.last().map(|idx| db.get_mut(*idx));
+
+        if let Some(Expression { expr: Expr::Literal(literal), .. }) = expr {
+            literal.update(value);
+        } else if expr.is_some() {
+            unreachable!();
+        }
+    }
+
+    fn add_roll(&mut self, db: &mut Database) {
+        let roll = Expression::new(Expr::literal(Some(db.roll(self.sides))));
+        let roll = db.alloc(roll);
+
+        self.values.push(roll);
+    }
 }
 
 impl Total for Die {
@@ -167,18 +213,28 @@ impl Total for Die {
 
 #[derive(Debug, PartialEq)]
 pub(super) struct Literal {
-    n: Option<u64>,
+    values: Vec<u64>,
+    exploded: bool,
 }
 
 impl Literal {
     fn new(n: Option<u64>) -> Self {
-        Self { n }
+        let values = n.map(|n| vec![n]).unwrap_or(Vec::new());
+        Self { values, exploded: false }
+    }
+
+    fn explode(&mut self) {
+        self.exploded = true;
+    }
+
+    fn update(&mut self, value: u64) {
+        self.values.push(value);
     }
 }
 
 impl Total for Literal {
     fn total(&self, _db: &Database) -> i64 {
-        self.n.unwrap() as i64  // TODO: handle missing
+        self.values.last().map(|&x| x as i64).unwrap_or(0)  // TODO: handle missing
     }
 }
 
