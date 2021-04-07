@@ -1,4 +1,4 @@
-use super::ExprIdx;
+use super::{Database, ExprIdx};
 
 
 #[derive(Debug, PartialEq)]
@@ -31,12 +31,15 @@ impl Expr {
         Self::Binary(Binary { op, lhs, rhs })
     }
 
-    pub(super) fn dice(count: Option<u64>, sides: Option<u64>, ops: Vec<SetOperation>) -> Self {
-        Self::Dice(Dice { count, sides, ops })
+    pub(super) fn dice(count: Option<u64>, sides: Option<u64>,
+                       ops: Vec<SetOperation>, db: &mut Database) -> Expr {
+        let dice = Dice::new(count, sides, ops, db);
+
+        Self::Dice(dice)
     }
 
     pub(super) fn literal(n: Option<u64>) -> Self {
-        Self::Literal(Literal { n })
+        Self::Literal(Literal::new(n))
     }
 
     pub(super) fn set(items: Vec<ExprIdx>, ops: Vec<SetOperation>) -> Self {
@@ -61,13 +64,52 @@ pub(super) struct Binary {
 pub(super) struct Dice {
     count: Option<u64>,
     sides: Option<u64>,
+    values: Vec<Die>,
     ops: Vec<SetOperation>,
+}
+
+impl Dice {
+    fn new(count: Option<u64>, sides: Option<u64>,
+           ops: Vec<SetOperation>, db: &mut Database) -> Self {
+        if let (Some(sides), Some(count)) = (sides, count) {
+            let mut values: Vec<_> =
+                db.roll_many(sides, count)
+                    .map(|roll| db.alloc(
+                        Expression::new(
+                            Expr::literal(Some(roll)))))
+                    .map(|idx| Die::new(sides, idx))
+                    .collect();
+
+            Self { count: Some(count), sides: Some(sides), values, ops }
+        } else {
+            Self { count, sides, values: Vec::new(), ops }  // TODO: Passing the buck
+        }
+    }
+}
+
+
+#[derive(Debug, PartialEq)]
+pub(super) struct Die {
+    sides: u64,
+    values: Vec<ExprIdx>,
+}
+
+impl Die {
+    fn new(sides: u64, value: ExprIdx) -> Self {
+        Self { sides, values: vec![value] }
+    }
 }
 
 
 #[derive(Debug, PartialEq)]
 pub(super) struct Literal {
     n: Option<u64>,
+}
+
+impl Literal {
+    fn new(n: Option<u64>) -> Self {
+        Self { n }
+    }
 }
 
 

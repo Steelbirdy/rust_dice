@@ -27,7 +27,7 @@ fn main() -> io::Result<()> {
 
         dbg!(root.expr());
 
-        let roll_result = hir::RollResult::from(root);
+        let roll_result = hir::roll(root);
         dbg!(roll_result);
 
         input.clear();

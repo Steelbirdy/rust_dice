@@ -10,6 +10,7 @@ edition = "2018"
 ast = { path = "../ast" }
 syntax = { path = "../syntax" }
 la-arena = "0.2.0"
+rand = "0.8.3"
 
 [dev-dependencies]
 parser = { path = "../parser" }
