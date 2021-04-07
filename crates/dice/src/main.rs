@@ -27,7 +27,8 @@ fn main() -> io::Result<()> {
 
         dbg!(root.expr());
 
-        dbg!(hir::lower(root));
+        let roll_result = hir::RollResult::from(root);
+        dbg!(roll_result);
 
         input.clear();
     }
