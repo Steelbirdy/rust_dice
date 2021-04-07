@@ -23,28 +23,69 @@ pub struct Expression {
 #[derive(Debug, PartialEq)]
 pub enum Expr {
     Missing,
-    Binary {
-        op: BinaryOp,
-        lhs: ExprIdx,
-        rhs: ExprIdx,
-    },
-    Dice {
-        count: Option<u64>,
-        sides: Option<u64>,
-        ops: Vec<SetOperation>,
-    },
-    Literal {
-        // is `None` if the number is too big to fit in a u64
-        n: Option<u64>,
-    },
-    Set {
-        items: Vec<ExprIdx>,
-        ops: Vec<SetOperation>,
-    },
-    Unary {
-        op: UnaryOp,
-        expr: ExprIdx,
-    },
+    Binary(Binary),
+    Dice(Dice),
+    Literal(Literal),
+    Set(Set),
+    Unary(Unary),
+}
+
+impl Expr {
+    fn binary(op: BinaryOp, lhs: ExprIdx, rhs: ExprIdx) -> Self {
+        Self::Binary(Binary { op, lhs, rhs })
+    }
+
+    fn dice(count: Option<u64>, sides: Option<u64>, ops: Vec<SetOperation>) -> Self {
+        Self::Dice(Dice { count, sides, ops })
+    }
+
+    fn literal(n: Option<u64>) -> Self {
+        Self::Literal(Literal { n })
+    }
+
+    fn set(items: Vec<ExprIdx>, ops: Vec<SetOperation>) -> Self {
+        Self::Set(Set { items, ops })
+    }
+
+    fn unary(op: UnaryOp, expr: ExprIdx) -> Self {
+        Self::Unary(Unary { op, expr })
+    }
+}
+
+
+#[derive(Debug, PartialEq)]
+pub struct Binary {
+    op: BinaryOp,
+    lhs: ExprIdx,
+    rhs: ExprIdx,
+}
+
+
+#[derive(Debug, PartialEq)]
+pub struct Dice {
+    count: Option<u64>,
+    sides: Option<u64>,
+    ops: Vec<SetOperation>,
+}
+
+
+#[derive(Debug, PartialEq)]
+pub struct Literal {
+    n: Option<u64>,
+}
+
+
+#[derive(Debug, PartialEq)]
+pub struct Set {
+    items: Vec<ExprIdx>,
+    ops: Vec<SetOperation>,
+}
+
+
+#[derive(Debug, PartialEq)]
+pub struct Unary {
+    op: UnaryOp,
+    expr: ExprIdx,
 }
 
 

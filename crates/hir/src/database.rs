@@ -19,7 +19,7 @@ impl Database {
             match ast {
                 ast::Expr::BinaryExpr(ast) => self.lower_binary(ast),
                 ast::Expr::Dice(ast) => self.lower_dice(ast),
-                ast::Expr::Literal(ast) => Expr::Literal { n: ast.parse() },
+                ast::Expr::Literal(ast) => Expr::literal(ast.parse()),
                 ast::Expr::ParenExpr(ast) => self.lower_expr(ast.expr()).expr,
                 ast::Expr::Set(ast) => self.lower_set(ast),
                 ast::Expr::UnaryExpr(ast) => self.lower_unary(ast),
@@ -43,23 +43,18 @@ impl Database {
         };
 
         let lhs = self.lower_expr(ast.lhs());
+        let lhs = self.exprs.alloc(lhs);
+        
         let rhs = self.lower_expr(ast.rhs());
-
-        Expr::Binary {
-            op,
-            lhs: self.exprs.alloc(lhs),
-            rhs: self.exprs.alloc(rhs),
-        }
+        let rhs = self.exprs.alloc(rhs);
+        
+        Expr::binary(op, lhs, rhs)
     }
 
     fn lower_dice(&mut self, ast: ast::Dice) -> Expr {
         let ops = ast.ops().map(|op| self.lower_set_op(op)).collect();
 
-        Expr::Dice {
-            count: ast.count(),
-            sides: ast.sides(),
-            ops,
-        }
+        Expr::dice(ast.count(), ast.sides(), ops)
     }
 
     fn lower_set(&mut self, ast: ast::Set) -> Expr {
@@ -74,10 +69,7 @@ impl Database {
 
         let ops = ast.ops().map(|op| self.lower_set_op(op)).collect();
 
-        Expr::Set {
-            items,
-            ops,
-        }
+        Expr::set(items, ops)
     }
 
     fn lower_unary(&mut self, ast: ast::UnaryExpr) -> Expr {
@@ -87,11 +79,9 @@ impl Database {
         };
 
         let expr = self.lower_expr(ast.expr());
-
-        Expr::Unary {
-            op,
-            expr: self.exprs.alloc(expr),
-        }
+        let expr = self.exprs.alloc(expr);
+        
+        Expr::unary(op, expr)
     }
 
     fn lower_set_op(&mut self, ast: ast::SetOp) -> SetOperation {
@@ -151,10 +141,10 @@ mod tests {
     #[test]
     fn lower_binary_expr() {
         let mut exprs = Arena::new();
-        let lhs = alloc(&mut exprs, Expr::Literal { n: Some(1) });
-        let rhs = alloc(&mut exprs, Expr::Literal { n: Some(2) });
+        let lhs = alloc(&mut exprs, Expr::literal(Some(1)));
+        let rhs = alloc(&mut exprs, Expr::literal(Some(2)));
 
-        let expr = Expr::Binary { lhs, rhs, op: BinaryOp::Add };
+        let expr = Expr::binary(BinaryOp::Add, lhs, rhs);
 
         check_expr(
             "1 + 2",
@@ -165,7 +155,7 @@ mod tests {
 
     #[test]
     fn lower_dice_no_ops() {
-        let expr = Expr::Dice { count: Some(1), sides: Some(12), ops: Vec::new() };
+        let expr = Expr::dice(Some(1), Some(12), Vec::new());
 
         check_expr(
             "1d12",
@@ -176,7 +166,7 @@ mod tests {
 
     #[test]
     fn lower_dice_implicit_count() {
-        let expr = Expr::Dice { count: Some(1), sides: Some(20), ops: Vec::new() };
+        let expr = Expr::dice(Some(1), Some(20), Vec::new());
 
         check_expr(
             "d20",
@@ -187,7 +177,7 @@ mod tests {
 
     #[test]
     fn lower_percentage_dice() {
-        let expr = Expr::Dice { count: Some(3), sides: Some(100), ops: Vec::new() };
+        let expr = Expr::dice(Some(3), Some(100), Vec::new());
 
         check_expr(
             "3d%",
@@ -198,13 +188,7 @@ mod tests {
 
     #[test]
     fn lower_dice_one_op() {
-        let expr = Expr::Dice {
-            count: Some(2),
-            sides: Some(20),
-            ops: vec![
-                (SetOp::Keep, SetSel::Highest, Some(1)),
-            ],
-        };
+        let expr = Expr::dice(Some(2), Some(20), vec![(SetOp::Keep, SetSel::Highest, Some(1))]);
 
         check_expr(
             "2d20kh1",
@@ -215,15 +199,11 @@ mod tests {
 
     #[test]
     fn lower_dice_multiple_ops() {
-        let expr = Expr::Dice {
-            count: Some(2),
-            sides: Some(20),
-            ops: vec![
-                (SetOp::Drop, SetSel::Lowest, Some(1)),
-                (SetOp::RerollOnce, SetSel::Less, Some(2)),
-                (SetOp::Explode, SetSel::Number, Some(5)),
-            ],
-        };
+        let expr = Expr::dice(Some(2), Some(20), vec![
+            (SetOp::Drop, SetSel::Lowest, Some(1)),
+            (SetOp::RerollOnce, SetSel::Less, Some(2)),
+            (SetOp::Explode, SetSel::Number, Some(5)),
+        ]);
 
         check_expr(
             "2d20pl1ro<2e5",
@@ -234,7 +214,7 @@ mod tests {
 
     #[test]
     fn lower_literal() {
-        let expr = Expr::Literal { n: Some(999) };
+        let expr = Expr::literal(Some(999));
 
         check_expr(
             "999",
@@ -245,7 +225,7 @@ mod tests {
 
     #[test]
     fn lower_empty_set() {
-        let expr = Expr::Set { items: Vec::new(), ops: Vec::new() };
+        let expr = Expr::set(Vec::new(), Vec::new());
 
         check_expr(
             "()",
@@ -258,11 +238,11 @@ mod tests {
     fn lower_singleton_set() {
         let mut exprs = Arena::new();
         let items: Vec<ExprIdx> = vec![
-            alloc(&mut exprs, Expr::Literal { n: Some(2) }),
+            alloc(&mut exprs, Expr::literal(Some(2))),
         ];
 
         assert_eq!(items.len(), 1);
-        let expr = Expr::Set { items, ops: Vec::new() };
+        let expr = Expr::set(items, Vec::new());
 
         check_expr(
             "(2,)",
@@ -275,15 +255,15 @@ mod tests {
     fn lower_set() {
         let mut exprs = Arena::new();
         let items: Vec<ExprIdx> = vec![
-            Expr::Unary { expr: alloc(&mut exprs, Expr::Literal { n: Some(10) }), op: UnaryOp::Neg },
-            Expr::Dice { count: Some(8), sides: Some(6), ops: Vec::new() },
-            Expr::Literal { n: Some(3) },
+            Expr::unary(UnaryOp::Neg, alloc(&mut exprs, Expr::literal(Some(10)))),
+            Expr::dice(Some(8), Some(6), Vec::new()),
+            Expr::literal(Some(3)),
         ].into_iter()
             .map(|expr| alloc(&mut exprs, expr))
             .collect();
 
         assert_eq!(items.len(), 3);
-        let expr = Expr::Set { items, ops: Vec::new() };
+        let expr = Expr::set(items, Vec::new());
 
         check_expr(
             "(-10, 8d6, 3)",
@@ -296,14 +276,14 @@ mod tests {
     fn lower_set_with_ops() {
         let mut exprs = Arena::new();
         let items: Vec<ExprIdx> = vec![
-            Expr::Literal { n: Some(100) },
-            Expr::Dice { count: Some(2), sides: Some(100), ops: Vec::new() },
+            Expr::literal(Some(100)),
+            Expr::dice(Some(2), Some(100), Vec::new()),
         ].into_iter()
             .map(|expr| alloc(&mut exprs, expr))
             .collect();
 
         assert_eq!(items.len(), 2);
-        let expr = Expr::Set { items, ops: vec![(SetOp::Explode, SetSel::Number, Some(100))] };
+        let expr = Expr::set(items, vec![(SetOp::Explode, SetSel::Number, Some(100))]);
 
         check_expr(
             "(100, 2d100)e100",
@@ -316,12 +296,9 @@ mod tests {
     fn lower_unary_expr() {
         let mut exprs = Arena::new();
         let inner = alloc(&mut exprs,
-                          Expr::Dice { count: Some(3), sides: Some(4), ops: Vec::new() });
+                          Expr::dice(Some(3), Some(4), Vec::new()));
 
-        let expr = Expr::Unary {
-            expr: inner,
-            op: UnaryOp::Neg,
-        };
+        let expr = Expr::unary(UnaryOp::Neg, inner);
 
         check_expr(
             "-3d4",
@@ -333,14 +310,10 @@ mod tests {
     #[test]
     fn lower_binary_expr_without_rhs() {
         let mut exprs = Arena::new();
-        let lhs = alloc(&mut exprs, Expr::Literal { n: Some(10) });
+        let lhs = alloc(&mut exprs, Expr::literal(Some(10)));
         let rhs = alloc_missing(&mut exprs);
 
-        let expr = Expr::Binary {
-            lhs,
-            rhs,
-            op: BinaryOp::Sub,
-        };
+        let expr = Expr::binary(BinaryOp::Sub, lhs, rhs);
 
         check_expr(
             "10 -",
@@ -354,10 +327,7 @@ mod tests {
         let mut exprs = Arena::new();
         let expr = alloc_missing(&mut exprs);
 
-        let expr = Expr::Unary {
-            expr,
-            op: UnaryOp::Neg,
-        };
+        let expr = Expr::unary(UnaryOp::Neg, expr);
 
         check_expr(
             "-",
