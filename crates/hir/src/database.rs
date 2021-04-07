@@ -1,7 +1,6 @@
-use crate::{BinaryOp, Expr, ExprIdx, Expression, SetOp, SetOperation, SetSel, UnaryOp};
+use super::*;
 use la_arena::Arena;
 use syntax::SyntaxKind;
-use std::ops::Index;
 
 
 #[derive(Debug, PartialEq, Default)]
@@ -10,11 +9,7 @@ pub struct Database {
 }
 
 impl Database {
-    pub fn get(&self, idx: ExprIdx) -> &Expression {
-        self.exprs.index(idx)
-    }
-
-    pub(crate) fn lower_expr(&mut self, ast: Option<ast::Expr>) -> Expression {
+    pub(super) fn lower_expr(&mut self, ast: Option<ast::Expr>) -> Expression {
         let expr = if let Some(ast) = ast {
             match ast {
                 ast::Expr::BinaryExpr(ast) => self.lower_binary(ast),
@@ -28,9 +23,7 @@ impl Database {
             Expr::Missing
         };
 
-        let kept = expr != Expr::Missing;
-
-        Expression { expr, kept }
+        Expression::new(expr)
     }
 
     fn lower_binary(&mut self, ast: ast::BinaryExpr) -> Expr {
@@ -131,11 +124,11 @@ mod tests {
     }
 
     fn alloc(arena: &mut Arena<Expression>, expr: Expr) -> ExprIdx {
-        arena.alloc(Expression { expr, kept: true })
+        arena.alloc(Expression::new(expr))
     }
 
     fn alloc_missing(arena: &mut Arena<Expression>) -> ExprIdx {
-        arena.alloc(Expression { expr: Expr::Missing, kept: false })
+        arena.alloc(Expression::new(Expr::Missing))
     }
 
     #[test]
@@ -148,7 +141,7 @@ mod tests {
 
         check_expr(
             "1 + 2",
-            Expression { expr, kept: true },
+            Expression::new(expr),
             Database { exprs },
         );
     }
@@ -159,7 +152,7 @@ mod tests {
 
         check_expr(
             "1d12",
-            Expression { expr, kept: true },
+            Expression::new(expr),
             Database::default(),
         );
     }
@@ -170,7 +163,7 @@ mod tests {
 
         check_expr(
             "d20",
-            Expression { expr, kept: true },
+            Expression::new(expr),
             Database::default(),
         );
     }
@@ -181,7 +174,7 @@ mod tests {
 
         check_expr(
             "3d%",
-            Expression { expr, kept: true },
+            Expression::new(expr),
             Database::default(),
         );
     }
@@ -192,7 +185,7 @@ mod tests {
 
         check_expr(
             "2d20kh1",
-            Expression { expr, kept: true },
+            Expression::new(expr),
             Database::default(),
         );
     }
@@ -207,7 +200,7 @@ mod tests {
 
         check_expr(
             "2d20pl1ro<2e5",
-            Expression { expr, kept: true },
+            Expression::new(expr),
             Database::default(),
         );
     }
@@ -218,7 +211,7 @@ mod tests {
 
         check_expr(
             "999",
-            Expression { expr, kept: true },
+            Expression::new(expr),
             Database::default(),
         );
     }
@@ -229,7 +222,7 @@ mod tests {
 
         check_expr(
             "()",
-            Expression { expr, kept: true },
+            Expression::new(expr),
             Database::default(),
         );
     }
@@ -246,7 +239,7 @@ mod tests {
 
         check_expr(
             "(2,)",
-            Expression { expr, kept: true },
+            Expression::new(expr),
             Database { exprs },
         );
     }
@@ -267,7 +260,7 @@ mod tests {
 
         check_expr(
             "(-10, 8d6, 3)",
-            Expression { expr, kept: true },
+            Expression::new(expr),
             Database { exprs },
         );
     }
@@ -287,7 +280,7 @@ mod tests {
 
         check_expr(
             "(100, 2d100)e100",
-            Expression { expr, kept: true },
+            Expression::new(expr),
             Database { exprs },
         );
     }
@@ -302,7 +295,7 @@ mod tests {
 
         check_expr(
             "-3d4",
-            Expression { expr, kept: true },
+            Expression::new(expr),
             Database { exprs },
         );
     }
@@ -317,7 +310,7 @@ mod tests {
 
         check_expr(
             "10 -",
-            Expression { expr, kept: true },
+            Expression::new(expr),
             Database { exprs },
         );
     }
@@ -331,7 +324,7 @@ mod tests {
 
         check_expr(
             "-",
-            Expression { expr, kept: true },
+            Expression::new(expr),
             Database { exprs },
         );
     }
