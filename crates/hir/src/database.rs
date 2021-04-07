@@ -100,7 +100,7 @@ impl Database {
                         _ => unreachable!(),
                     });
 
-        (op, sel, ast.num())
+        SetOperation::new(op, sel, ast.num())
     }
 }
 
@@ -181,7 +181,9 @@ mod tests {
 
     #[test]
     fn lower_dice_one_op() {
-        let expr = Expr::dice(Some(2), Some(20), vec![(SetOp::Keep, SetSel::Highest, Some(1))]);
+        let expr = Expr::dice(Some(2), Some(20), vec![
+            SetOperation::new(SetOp::Keep, SetSel::Highest, Some(1))
+        ]);
 
         check_expr(
             "2d20kh1",
@@ -193,9 +195,9 @@ mod tests {
     #[test]
     fn lower_dice_multiple_ops() {
         let expr = Expr::dice(Some(2), Some(20), vec![
-            (SetOp::Drop, SetSel::Lowest, Some(1)),
-            (SetOp::RerollOnce, SetSel::Less, Some(2)),
-            (SetOp::Explode, SetSel::Number, Some(5)),
+            SetOperation::new(SetOp::Drop, SetSel::Lowest, Some(1)),
+            SetOperation::new(SetOp::RerollOnce, SetSel::Less, Some(2)),
+            SetOperation::new(SetOp::Explode, SetSel::Number, Some(5)),
         ]);
 
         check_expr(
@@ -276,7 +278,9 @@ mod tests {
             .collect();
 
         assert_eq!(items.len(), 2);
-        let expr = Expr::set(items, vec![(SetOp::Explode, SetSel::Number, Some(100))]);
+        let expr = Expr::set(items, vec![
+            SetOperation::new(SetOp::Explode, SetSel::Number, Some(100))
+        ]);
 
         check_expr(
             "(100, 2d100)e100",

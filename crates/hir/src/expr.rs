@@ -100,7 +100,18 @@ pub(super) enum UnaryOp {
 }
 
 
-pub(super) type SetOperation = (SetOp, SetSel, Option<u64>);
+#[derive(Debug, PartialEq)]
+pub(super) struct SetOperation {
+    op: SetOp,
+    sel: SetSel,
+    num: Option<u64>,
+}
+
+impl SetOperation {
+    pub(super) fn new(op: SetOp, sel: SetSel, num: Option<u64>) -> Self {
+        Self { op, sel, num }
+    }
+}
 
 
 #[derive(Debug, Copy, Clone, PartialEq)]
