@@ -1,4 +1,4 @@
-use crate::{BinaryOp, Expr, ExprIdx, SetOperation, SetOp, SetSel, UnaryOp};
+use crate::{BinaryOp, Expr, ExprIdx, Expression, SetOp, SetOperation, SetSel, UnaryOp};
 use la_arena::Arena;
 use syntax::SyntaxKind;
 use std::ops::Index;
@@ -6,27 +6,31 @@ use std::ops::Index;
 
 #[derive(Debug, PartialEq, Default)]
 pub struct Database {
-    exprs: Arena<Expr>,
+    exprs: Arena<Expression>,
 }
 
 impl Database {
-    pub fn get(&self, idx: ExprIdx) -> &Expr {
+    pub fn get(&self, idx: ExprIdx) -> &Expression {
         self.exprs.index(idx)
     }
 
-    pub(crate) fn lower_expr(&mut self, ast: Option<ast::Expr>) -> Expr {
-        if let Some(ast) = ast {
+    pub(crate) fn lower_expr(&mut self, ast: Option<ast::Expr>) -> Expression {
+        let expr = if let Some(ast) = ast {
             match ast {
                 ast::Expr::BinaryExpr(ast) => self.lower_binary(ast),
                 ast::Expr::Dice(ast) => self.lower_dice(ast),
                 ast::Expr::Literal(ast) => Expr::Literal { n: ast.parse() },
-                ast::Expr::ParenExpr(ast) => self.lower_expr(ast.expr()),
+                ast::Expr::ParenExpr(ast) => self.lower_expr(ast.expr()).expr,
                 ast::Expr::Set(ast) => self.lower_set(ast),
                 ast::Expr::UnaryExpr(ast) => self.lower_unary(ast),
             }
         } else {
             Expr::Missing
-        }
+        };
+
+        let kept = expr != Expr::Missing;
+
+        Expression { expr, kept }
     }
 
     fn lower_binary(&mut self, ast: ast::BinaryExpr) -> Expr {
@@ -58,8 +62,16 @@ impl Database {
         }
     }
 
-    fn lower_set(&mut self, ast: ast::Set) -> Expr {  // TODO: Allocate set items in arena?
-        let items = ast.items().map(|expr| self.lower_expr(Some(expr))).collect();
+    fn lower_set(&mut self, ast: ast::Set) -> Expr {
+        let mut items = Vec::new();
+
+        for item in ast.items().into_iter() {
+            let item = self.lower_expr(Some(item));
+            let item = self.exprs.alloc(item);
+
+            items.push(item);
+        }
+
         let ops = ast.ops().map(|op| self.lower_set_op(op)).collect();
 
         Expr::Set {
@@ -118,7 +130,7 @@ mod tests {
         ast::Root::cast(parser::parse(input).syntax()).unwrap()
     }
 
-    fn check_expr(input: &str, expected_hir: Expr, expected_database: Database) {
+    fn check_expr(input: &str, expected_hir: Expression, expected_database: Database) {
         let root = parse(input);
         let expr = root.expr();
         let mut database = Database::default();
@@ -128,152 +140,192 @@ mod tests {
         assert_eq!(database, expected_database);
     }
 
+    fn alloc(arena: &mut Arena<Expression>, expr: Expr) -> ExprIdx {
+        arena.alloc(Expression { expr, kept: true })
+    }
+
+    fn alloc_missing(arena: &mut Arena<Expression>) -> ExprIdx {
+        arena.alloc(Expression { expr: Expr::Missing, kept: false })
+    }
+
     #[test]
     fn lower_binary_expr() {
         let mut exprs = Arena::new();
-        let lhs = exprs.alloc(Expr::Literal { n: Some(1) });
-        let rhs = exprs.alloc(Expr::Literal { n: Some(2) });
+        let lhs = alloc(&mut exprs, Expr::Literal { n: Some(1) });
+        let rhs = alloc(&mut exprs, Expr::Literal { n: Some(2) });
+
+        let expr = Expr::Binary { lhs, rhs, op: BinaryOp::Add };
 
         check_expr(
             "1 + 2",
-            Expr::Binary {
-                lhs,
-                rhs,
-                op: BinaryOp::Add,
-            },
+            Expression { expr, kept: true },
             Database { exprs },
         );
     }
 
     #[test]
     fn lower_dice_no_ops() {
+        let expr = Expr::Dice { count: Some(1), sides: Some(12), ops: Vec::new() };
+
         check_expr(
             "1d12",
-            Expr::Dice { count: Some(1), sides: Some(12), ops: Vec::new() },
+            Expression { expr, kept: true },
             Database::default(),
         );
     }
 
     #[test]
     fn lower_dice_implicit_count() {
+        let expr = Expr::Dice { count: Some(1), sides: Some(20), ops: Vec::new() };
+
         check_expr(
             "d20",
-            Expr::Dice { count: Some(1), sides: Some(20), ops: Vec::new() },
+            Expression { expr, kept: true },
             Database::default(),
         );
     }
 
     #[test]
     fn lower_percentage_dice() {
+        let expr = Expr::Dice { count: Some(3), sides: Some(100), ops: Vec::new() };
+
         check_expr(
             "3d%",
-            Expr::Dice { count: Some(3), sides: Some(100), ops: Vec::new() },
+            Expression { expr, kept: true },
             Database::default(),
         );
     }
 
     #[test]
     fn lower_dice_one_op() {
+        let expr = Expr::Dice {
+            count: Some(2),
+            sides: Some(20),
+            ops: vec![
+                (SetOp::Keep, SetSel::Highest, Some(1)),
+            ],
+        };
+
         check_expr(
             "2d20kh1",
-            Expr::Dice {
-                count: Some(2),
-                sides: Some(20),
-                ops: vec![
-                    (SetOp::Keep, SetSel::Highest, Some(1)),
-                ],
-            },
+            Expression { expr, kept: true },
             Database::default(),
         );
     }
 
     #[test]
     fn lower_dice_multiple_ops() {
+        let expr = Expr::Dice {
+            count: Some(2),
+            sides: Some(20),
+            ops: vec![
+                (SetOp::Drop, SetSel::Lowest, Some(1)),
+                (SetOp::RerollOnce, SetSel::Less, Some(2)),
+                (SetOp::Explode, SetSel::Number, Some(5)),
+            ],
+        };
+
         check_expr(
             "2d20pl1ro<2e5",
-            Expr::Dice {
-                count: Some(2),
-                sides: Some(20),
-                ops: vec![
-                    (SetOp::Drop, SetSel::Lowest, Some(1)),
-                    (SetOp::RerollOnce, SetSel::Less, Some(2)),
-                    (SetOp::Explode, SetSel::Number, Some(5)),
-                ],
-            },
+            Expression { expr, kept: true },
             Database::default(),
         );
     }
 
     #[test]
     fn lower_literal() {
+        let expr = Expr::Literal { n: Some(999) };
+
         check_expr(
             "999",
-            Expr::Literal { n: Some(999) },
+            Expression { expr, kept: true },
             Database::default(),
         );
     }
 
     #[test]
     fn lower_empty_set() {
+        let expr = Expr::Set { items: Vec::new(), ops: Vec::new() };
+
         check_expr(
             "()",
-            Expr::Set { items: Vec::new(), ops: Vec::new() },
+            Expression { expr, kept: true },
             Database::default(),
         );
     }
 
     #[test]
     fn lower_singleton_set() {
-        let inner = Expr::Literal { n: Some(2) };
+        let mut exprs = Arena::new();
+        let items: Vec<ExprIdx> = vec![
+            alloc(&mut exprs, Expr::Literal { n: Some(2) }),
+        ];
+
+        assert_eq!(items.len(), 1);
+        let expr = Expr::Set { items, ops: Vec::new() };
 
         check_expr(
             "(2,)",
-            Expr::Set { items: vec![inner], ops: Vec::new() },
-            Database::default(),
+            Expression { expr, kept: true },
+            Database { exprs },
         );
     }
 
     #[test]
     fn lower_set() {
         let mut exprs = Arena::new();
-        let items = vec![
-            Expr::Unary { expr: exprs.alloc(Expr::Literal { n: Some(10) }), op: UnaryOp::Neg },
+        let items: Vec<ExprIdx> = vec![
+            Expr::Unary { expr: alloc(&mut exprs, Expr::Literal { n: Some(10) }), op: UnaryOp::Neg },
             Expr::Dice { count: Some(8), sides: Some(6), ops: Vec::new() },
             Expr::Literal { n: Some(3) },
-        ];
+        ].into_iter()
+            .map(|expr| alloc(&mut exprs, expr))
+            .collect();
+
+        assert_eq!(items.len(), 3);
+        let expr = Expr::Set { items, ops: Vec::new() };
 
         check_expr(
             "(-10, 8d6, 3)",
-            Expr::Set { items, ops: Vec::new() },
+            Expression { expr, kept: true },
             Database { exprs },
         );
     }
 
     #[test]
     fn lower_set_with_ops() {
-        let items = vec![
-            Expr::Literal { n: Some(100), },
+        let mut exprs = Arena::new();
+        let items: Vec<ExprIdx> = vec![
+            Expr::Literal { n: Some(100) },
             Expr::Dice { count: Some(2), sides: Some(100), ops: Vec::new() },
-        ];
+        ].into_iter()
+            .map(|expr| alloc(&mut exprs, expr))
+            .collect();
+
+        assert_eq!(items.len(), 2);
+        let expr = Expr::Set { items, ops: vec![(SetOp::Explode, SetSel::Number, Some(100))] };
 
         check_expr(
             "(100, 2d100)e100",
-            Expr::Set { items, ops: vec![(SetOp::Explode, SetSel::Number, Some(100))] },
-            Database::default(),
+            Expression { expr, kept: true },
+            Database { exprs },
         );
     }
 
     #[test]
     fn lower_unary_expr() {
         let mut exprs = Arena::new();
-        let inner = exprs.alloc(Expr::Dice { count: Some(3), sides: Some(4), ops: Vec::new() });
+        let inner = alloc(&mut exprs,
+                          Expr::Dice { count: Some(3), sides: Some(4), ops: Vec::new() });
+
+        let expr = Expr::Unary {
+            expr: inner,
+            op: UnaryOp::Neg,
+        };
 
         check_expr(
             "-3d4",
-            Expr::Unary {
-                expr: inner,
-                op: UnaryOp::Neg,
-            },
+            Expression { expr, kept: true },
             Database { exprs },
         );
     }
@@ -281,16 +333,18 @@ mod tests {
     #[test]
     fn lower_binary_expr_without_rhs() {
         let mut exprs = Arena::new();
-        let lhs = exprs.alloc(Expr::Literal { n: Some(10) });
-        let rhs = exprs.alloc(Expr::Missing);
+        let lhs = alloc(&mut exprs, Expr::Literal { n: Some(10) });
+        let rhs = alloc_missing(&mut exprs);
+
+        let expr = Expr::Binary {
+            lhs,
+            rhs,
+            op: BinaryOp::Sub,
+        };
 
         check_expr(
             "10 -",
-            Expr::Binary {
-                lhs,
-                rhs,
-                op: BinaryOp::Sub,
-            },
+            Expression { expr, kept: true },
             Database { exprs },
         );
     }
@@ -298,14 +352,16 @@ mod tests {
     #[test]
     fn lower_unary_expr_without_expr() {
         let mut exprs = Arena::new();
-        let expr = exprs.alloc(Expr::Missing);
+        let expr = alloc_missing(&mut exprs);
+
+        let expr = Expr::Unary {
+            expr,
+            op: UnaryOp::Neg,
+        };
 
         check_expr(
             "-",
-            Expr::Unary {
-                expr,
-                op: UnaryOp::Neg,
-            },
+            Expression { expr, kept: true },
             Database { exprs },
         );
     }

@@ -2,14 +2,21 @@ mod database;
 pub use database::Database;
 
 use la_arena::Idx;
-pub type ExprIdx = Idx<Expr>;
+pub type ExprIdx = Idx<Expression>;
 
 
-pub fn lower(ast: ast::Root) -> (Database, Expr) {
+pub fn lower(ast: ast::Root) -> (Database, Expression) {
     let mut db = Database::default();
     let lowered_expr = db.lower_expr(ast.expr());
 
     (db, lowered_expr)
+}
+
+
+#[derive(Debug, PartialEq)]
+pub struct Expression {
+    expr: Expr,
+    kept: bool,
 }
 
 
@@ -31,7 +38,7 @@ pub enum Expr {
         n: Option<u64>,
     },
     Set {
-        items: Vec<Self>,
+        items: Vec<ExprIdx>,
         ops: Vec<SetOperation>,
     },
     Unary {
