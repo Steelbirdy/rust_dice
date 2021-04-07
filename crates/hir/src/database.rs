@@ -6,8 +6,8 @@ use std::ops::{Index, IndexMut};
 
 #[derive(Debug, PartialEq, Default)]
 pub struct Database {
-    exprs: Arena<Expression>,
-    ctx: RollContext,
+    pub(super) exprs: Arena<Expression>,
+    pub(super) ctx: RollContext,
 }
 
 impl Database {
@@ -130,8 +130,7 @@ impl Database {
 #[cfg(test)]
 mod tests {
     use super::*;
-
-    const SEED: u64 = 10353;
+    use crate::SEED;
 
     fn default_db() -> Database {
         Database {

@@ -1,4 +1,4 @@
-use super::{Database, ExprIdx};
+use super::{Database, ExprIdx, Total};
 
 
 #[derive(Debug, PartialEq)]
@@ -12,6 +12,16 @@ impl Expression {
         let kept = expr != Expr::Missing;
 
         Expression { expr, kept }
+    }
+}
+
+impl Total for Expression {
+    fn total(&self, db: &Database) -> i64 {
+        if self.kept {
+            self.expr.total(db)
+        } else {
+            0
+        }
     }
 }
 
@@ -51,12 +61,42 @@ impl Expr {
     }
 }
 
+impl Total for Expr {
+    fn total(&self, db: &Database) -> i64 {
+        match self {
+            Self::Missing => 0,
+            Self::Binary(binary) => binary.total(db),
+            Self::Dice(dice) => dice.total(db),
+            Self::Literal(literal) => literal.total(db),
+            Self::Set(set) => set.total(db),
+            Self::Unary(unary) => unary.total(db),
+        }
+    }
+}
+
 
 #[derive(Debug, PartialEq)]
 pub(super) struct Binary {
     op: BinaryOp,
     lhs: ExprIdx,
     rhs: ExprIdx,
+}
+
+impl Total for Binary {
+    fn total(&self, db: &Database) -> i64 {
+        let lhs = db.get(self.lhs);
+        let lhs = lhs.total(db);
+
+        let rhs = db.get(self.rhs);
+        let rhs = rhs.total(db);
+
+        match self.op {
+            BinaryOp::Add => lhs + rhs,
+            BinaryOp::Sub => lhs - rhs,
+            BinaryOp::Mul => lhs * rhs,
+            BinaryOp::Div => lhs / rhs,  // TODO: handle division by 0
+        }
+    }
 }
 
 
@@ -72,7 +112,7 @@ impl Dice {
     fn new(count: Option<u64>, sides: Option<u64>,
            ops: Vec<SetOperation>, db: &mut Database) -> Self {
         if let (Some(sides), Some(count)) = (sides, count) {
-            let mut values: Vec<_> =
+            let values: Vec<_> =
                 db.roll_many(sides, count)
                     .map(|roll| db.alloc(
                         Expression::new(
@@ -84,6 +124,15 @@ impl Dice {
         } else {
             Self { count, sides, values: Vec::new(), ops }  // TODO: Passing the buck
         }
+    }
+}
+
+impl Total for Dice {
+    fn total(&self, db: &Database) -> i64 {
+        self.values
+            .iter()
+            .map(|die| die.total(db))
+            .sum()
     }
 }
 
@@ -100,6 +149,21 @@ impl Die {
     }
 }
 
+impl Total for Die {
+    fn total(&self, db: &Database) -> i64 {
+        let expr = self.values.last()
+            .map(|idx| db.get(*idx));
+
+        if let Some(Expression { expr: Expr::Literal(literal), .. }) = expr {
+            literal.total(db)
+        } else if expr.is_some() {
+            unreachable!()
+        } else {
+            0  // TODO: Handle no value
+        }
+    }
+}
+
 
 #[derive(Debug, PartialEq)]
 pub(super) struct Literal {
@@ -112,6 +176,12 @@ impl Literal {
     }
 }
 
+impl Total for Literal {
+    fn total(&self, _db: &Database) -> i64 {
+        self.n.unwrap() as i64  // TODO: handle missing
+    }
+}
+
 
 #[derive(Debug, PartialEq)]
 pub(super) struct Set {
@@ -119,11 +189,32 @@ pub(super) struct Set {
     ops: Vec<SetOperation>,
 }
 
+impl Total for Set {
+    fn total(&self, db: &Database) -> i64 {
+        self.items
+            .iter()
+            .map(|idx| db.get(*idx))
+            .map(|expr| expr.total(db))
+            .sum()
+    }
+}
+
 
 #[derive(Debug, PartialEq)]
 pub(super) struct Unary {
     op: UnaryOp,
     expr: ExprIdx,
+}
+
+impl Total for Unary {
+    fn total(&self, db: &Database) -> i64 {
+        let expr = db.get(self.expr);
+        let total = expr.total(db);
+
+        match self.op {
+            UnaryOp::Neg => -total,
+        }
+    }
 }
 
 
@@ -176,4 +267,79 @@ pub(super) enum SetSel {
     Lowest,
     Greater,
     Less,
+}
+
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::{SEED, RollContext};
+    use rand::prelude::*;
+
+    fn parse(input: &str) -> ast::Root {
+        ast::Root::cast(parser::parse(input).syntax()).unwrap()
+    }
+
+    fn roll(sides: u64) -> i64 {
+        StdRng::seed_from_u64(SEED).sample(rand::distributions::Uniform::new_inclusive(1, sides)) as i64
+    }
+
+    fn check(input: &str, expected_total: i64) {
+        let ast = parse(input);
+        let expr = ast.expr();
+        let mut db = Database {
+            exprs: la_arena::Arena::new(),
+            ctx: RollContext::new(StdRng::seed_from_u64(SEED)),
+        };
+        let hir = db.lower_expr(expr);
+
+        assert_eq!(hir.total(&mut db), expected_total);
+    }
+
+    #[test]
+    fn total_literal() {
+        check("2", 2);
+    }
+
+    #[test]
+    fn total_dice() {
+        check("1d20", roll(20));
+    }
+
+    #[test]
+    fn total_unary() {
+        check("-5", -5);
+    }
+
+    #[test]
+    fn total_binary() {
+        check("1d12 - 2", roll(12) - 2);
+    }
+
+    #[test]
+    fn total_set() {
+        check("(1, 1d6)", roll(6) + 1);
+    }
+
+    #[test]
+    fn total_expr() {
+        let total = 5 * roll(8) - 6;
+
+        check("5 * 1d8 - 6", total);
+    }
+
+    #[test]
+    fn rng_is_deterministic() {
+        let rng1 = StdRng::seed_from_u64(SEED);
+        let rng2 = StdRng::seed_from_u64(SEED);
+
+        assert!(
+            rng1.sample_iter(rand::distributions::Uniform::new_inclusive(1, 20)).take(10)
+                .zip(
+                    rng2.sample_iter(rand::distributions::Uniform::new_inclusive(1, 20)).take(10))
+                .map(|(a, b)| a == b)
+                .reduce(|a, b| a && b)
+                .unwrap()
+        );
+    }
 }

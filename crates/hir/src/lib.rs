@@ -23,6 +23,12 @@ pub struct RollResult {
     db: Database,
 }
 
+impl RollResult {
+    pub fn total(&mut self) -> i64 {
+        self.expr.total(&mut self.db)
+    }
+}
+
 impl From<ast::Root> for RollResult {
     fn from(ast: ast::Root) -> Self {
         let mut db = Database::default();
@@ -59,3 +65,12 @@ impl Default for RollContext {
         Self::new(StdRng::from_entropy())
     }
 }
+
+
+trait Total {
+    fn total(&self, db: &Database) -> i64;
+}
+
+
+#[cfg(test)]
+const SEED: u64 = 10353;

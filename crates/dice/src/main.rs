@@ -27,8 +27,11 @@ fn main() -> io::Result<()> {
 
         dbg!(root.expr());
 
-        let roll_result = hir::roll(root);
+        let mut roll_result = hir::roll(root);
+        let total = roll_result.total();
         dbg!(roll_result);
+
+        println!("Total: {}", total);
 
         input.clear();
     }
