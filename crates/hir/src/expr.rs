@@ -297,8 +297,29 @@ pub(super) struct SetOperation {
 }
 
 impl SetOperation {
+    const INCOMPATIBLE_SET_OPS: &'static [(SetOp, &'static [SetSel])] = &[
+        (SetOp::Reroll, &[SetSel::Highest, SetSel::Lowest]),
+        (SetOp::Min, &[SetSel::Lowest, SetSel::Highest, SetSel::Greater, SetSel::Less]),
+        (SetOp::Max, &[SetSel::Lowest, SetSel::Highest, SetSel::Greater, SetSel::Less]),
+    ];
+
     pub(super) fn new(op: SetOp, sel: SetSel, num: Option<u64>) -> Self {
         Self { op, sel, num }
+    }
+
+    fn validate(&self) -> bool {
+        for (op, sels) in Self::INCOMPATIBLE_SET_OPS.iter() {
+            if self.op != *op {
+                continue
+            }
+            for sel in sels.iter() {
+                if self.sel == *sel {
+                    return false;
+                }
+            }
+        }
+
+        true
     }
 }
 
@@ -397,5 +418,17 @@ mod tests {
                 .reduce(|a, b| a && b)
                 .unwrap()
         );
+    }
+
+    #[test]
+    fn catches_invalid_set_operations() {
+        let op = SetOperation::new(SetOp::Reroll, SetSel::Highest, Some(2));
+        assert!(!op.validate());
+    }
+
+    #[test]
+    fn allows_valid_set_operations() {
+        let op = SetOperation::new(SetOp::Keep, SetSel::Highest, Some(5));
+        assert!(op.validate());
     }
 }
