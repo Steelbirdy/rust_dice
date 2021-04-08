@@ -1,3 +1,5 @@
+mod set_ops;
+
 use super::{Database, ExprIdx, Total};
 
 
@@ -12,6 +14,10 @@ impl Expression {
         let kept = expr != Expr::Missing;
 
         Expression { expr, kept }
+    }
+
+    fn drop(&mut self) {
+        self.kept = false;
     }
 }
 
@@ -147,18 +153,23 @@ impl Total for Dice {
 pub(super) struct Die {
     sides: u64,
     values: Vec<ExprIdx>,
+    kept: bool,
 }
 
 impl Die {
     fn new(sides: u64, value: ExprIdx) -> Self {
-        Self { sides, values: vec![value] }
+        Self { sides, values: vec![value], kept: true }
     }
 
     fn roll_new(sides: u64, db: &mut Database) -> Self {
         let value = Expr::literal(Some(db.roll(sides)));
         let value = db.alloc(Expression::new(value));
 
-        Self { sides, values: vec![value] }
+        Self { sides, values: vec![value], kept: true }
+    }
+
+    fn drop(&mut self) {
+        self.kept = false;
     }
 
     fn reroll(&mut self, db: &mut Database) {
@@ -305,6 +316,18 @@ impl SetOperation {
 
     pub(super) fn new(op: SetOp, sel: SetSel, num: Option<u64>) -> Self {
         Self { op, sel, num }
+    }
+
+    fn operate(&self, target: &mut Expression, db: &mut Database) {
+        match target {
+            Expression { expr: Expr::Dice(dice), .. } => {
+                set_ops::operate_on_dice(self, dice, db)
+            }
+            Expression { expr: Expr::Set(set), .. } => {
+                set_ops::operate_on_set(self, set, db)
+            }
+            _ => unreachable!(),
+        }
     }
 
     fn validate(&self) -> bool {
